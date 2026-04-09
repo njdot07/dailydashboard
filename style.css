@@ -120,6 +120,39 @@ body {
     flex-direction: column;
 }
 
+/* When the dashboard tab is active, let the inner scroll handle overflow */
+.main-content:has(#tab-dashboard.active) { overflow: hidden; }
+
+/* Dashboard tab — only when ACTIVE does it become the spatial canvas host.
+   When inactive it must remain display:none from the base .tab-content rule
+   so it never bleeds into Schedule / Notes / Settings. */
+#tab-dashboard.active {
+    display: flex !important;
+    flex-direction: column;
+    max-width: none;
+    width: 100%;
+    height: calc(100vh - 8rem);
+    margin: 0;
+}
+
+/* Scroll viewport wraps the oversized canvas */
+.dashboard-scroll {
+    flex: 1;
+    width: 100%;
+    overflow: auto;
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0,0,0,0.12);
+    scroll-behavior: smooth;
+    position: relative;
+}
+.dashboard-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.dashboard-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+}
+.dashboard-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); }
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -210,13 +243,25 @@ body {
 }
 
 .mini-clock {
+    margin: 0;
+    transform: scale(0.6);
+    transform-origin: top left;
+}
+
+/* Schedule-tab mini-clock host — draggable + position-persisted */
+.mini-clock-host {
     position: absolute;
     top: 2rem;
     right: 2rem;
-    transform: scale(0.6);
-    transform-origin: top right;
-    margin: 0;
+    width: 256px;
+    height: 256px;
     z-index: 10;
+    cursor: grab;
+    touch-action: none;
+}
+.mini-clock-host:active { cursor: grabbing; }
+.mini-clock-host .analog-clock {
+    margin: 0;
 }
 
 .center-dot {
@@ -1518,4 +1563,696 @@ input:checked + .slider:before {
     flex-wrap: wrap;
     gap: 1rem;
     padding: 0.5rem 0 1rem;
+}
+
+/* ==========================================
+   Smart Office OS — Breathable Spatial Canvas
+   ========================================== */
+/* SCOPED to the dashboard tab — never leaks into body or other tabs */
+#tab-dashboard .dashboard-grid {
+    position: relative;
+    width: 120vw;
+    height: 120vh;
+    min-width: 1400px;
+    min-height: 900px;
+    box-sizing: border-box;
+    /* 225px stride grid (200 cell + 25 gap) */
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 1.5px);
+    background-size: 225px 225px;
+    background-position: 25px 25px;
+}
+
+.dash-widget {
+    position: absolute;
+    box-sizing: border-box;
+    transition: box-shadow 0.2s ease;
+    top: 25px;
+    left: 25px;
+}
+
+.dash-widget.dragging {
+    box-shadow: 0 0 0 2px rgba(126, 207, 255, 0.85), 0 12px 40px rgba(0, 0, 0, 0.55);
+    transition: none !important;
+    user-select: none;
+    will-change: left, top;
+}
+
+/* ---- Size Presets ----
+   Grid unit: 200px  ·  Gap: 25px  ·  Stride: 225px
+   Small  (1x1)   200 × 200
+   Medium (2x1)   425 × 200
+   Large  (2x2)   425 × 425 */
+.dash-widget.size-small  { width: 200px; height: 200px; }
+.dash-widget.size-medium { width: 425px; height: 200px; }
+.dash-widget.size-large  { width: 425px; height: 425px; }
+
+/* Clock widget: ALWAYS a perfect circle container */
+.clock-widget {
+    aspect-ratio: 1 / 1 !important;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    border-radius: 50%;
+}
+.clock-mount {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+/* Clock hands rotate from their geometric center to prevent disfigurement */
+.analog-clock .hand,
+.clock-svg .hand {
+    transform-origin: bottom center;
+    transform-box: fill-box;
+}
+.clock-svg [data-hand] {
+    transform-origin: center;
+    transform-box: fill-box;
+}
+.clock-widget.size-small  { width: 200px; height: 200px; }
+.clock-widget.size-medium { width: 300px; height: 300px; }
+.clock-widget.size-large  { width: 425px; height: 425px; }
+.clock-widget .analog-clock {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 0 !important;
+    flex-shrink: 0;
+}
+
+/* Resize handle (top-left) */
+.resize-handle {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.7rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    font-size: 0.95rem;
+    border-radius: 6px;
+    background: none;
+    border: none;
+    transition: color 0.15s, background 0.15s;
+    z-index: 5;
+    user-select: none;
+    padding: 0;
+    line-height: 1;
+}
+.resize-handle:hover {
+    color: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.1);
+}
+.sticky-pin-widget .resize-handle {
+    color: rgba(0,0,0,0.4);
+}
+.sticky-pin-widget .resize-handle:hover {
+    color: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.07);
+}
+
+.drag-handle {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: grab;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    z-index: 5;
+    user-select: none;
+}
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.08);
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Sizing is driven by .size-small / .size-medium / .size-large preset classes */
+
+/* Status Bar */
+.status-bar-widget {
+    display: flex;
+    align-items: center;
+    padding: 1.2rem 1.8rem;
+}
+.status-bar-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+.status-bar-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+.status-bar-text {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Pinned Notes */
+.pinned-notes-widget {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.pinned-notes-input-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+.pinned-notes-input-row input {
+    flex: 1;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+.pinned-notes-list {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
+}
+.pinned-notes-list::-webkit-scrollbar { width: 5px; }
+.pinned-notes-list::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 5px; }
+.pinned-notes-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.55rem 0.6rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    margin-bottom: 0.45rem;
+    font-size: 0.88rem;
+}
+.pinned-notes-list .pn-text {
+    flex: 1;
+    white-space: pre-wrap;       /* respect Enter / line breaks */
+    word-break: break-word;
+    /* Proportional scaling — small widget shows compact text, large widget shows readable text */
+    font-size: clamp(0.78rem, 0.55vw + 0.7rem, 1.05rem);
+    line-height: 1.35;
+}
+.sticky-pin-widget .sticky-pin-text {
+    font-size: clamp(0.85rem, 0.6vw + 0.75rem, 1.15rem);
+}
+.pinned-notes-list textarea.pn-text {
+    background: rgba(0,0,0,0.25);
+    border: 1px dashed rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    width: 100%;
+    resize: vertical;
+    min-height: 50px;
+    outline: none;
+}
+
+/* Launchpad widget (categorized) */
+.launchpad-widget {
+    padding: 1.4rem 1.5rem;
+}
+.launchpad-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+.launchpad-category {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.launchpad-category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+.launchpad-category-header:hover { background: rgba(255,255,255,0.07); }
+.launchpad-category-toggle {
+    margin-left: auto;
+    transition: transform 0.2s;
+    opacity: 0.7;
+    font-size: 0.7rem;
+}
+.launchpad-category.open .launchpad-category-toggle { transform: rotate(90deg); }
+.launchpad-category-body {
+    display: none;
+    padding: 0.5rem 0.9rem 0.9rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.launchpad-category.open .launchpad-category-body {
+    display: flex;
+}
+.launchpad-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 0.83rem;
+    transition: background 0.15s, transform 0.15s;
+}
+.launchpad-link:hover {
+    background: rgba(255,255,255,0.16);
+    transform: translateY(-2px);
+}
+.launchpad-link .lp-icon { font-size: 1.05rem; }
+
+/* Launchpad categories settings (Settings tab) */
+.launchpad-categories-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.lp-cat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 0.9rem;
+}
+.lp-cat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+.lp-cat-card-header input {
+    flex: 1;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+.lp-cat-card-links {
+    display: grid;
+    grid-template-columns: 2fr 3fr 1fr auto;
+    gap: 0.4rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+.lp-cat-card-links input {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+}
+.lp-cat-card .icon-btn {
+    background: none;
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+.lp-cat-card-add {
+    background: none;
+    border: 1px dashed rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.7);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+/* ==========================================
+   Schedule View Toggle (Day / Month)
+   ========================================== */
+.schedule-view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    justify-content: flex-start;
+    max-width: 65%;
+}
+.schedule-toggle-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+.schedule-toggle-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.schedule-toggle-btn.active {
+    background: rgba(126, 207, 255, 0.18);
+    border-color: rgba(126, 207, 255, 0.5);
+    color: #fff;
+}
+
+/* Month View */
+.schedule-month-view {
+    max-width: 100% !important;
+}
+.month-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.month-view-header h2 {
+    border: none;
+    margin: 0;
+    padding: 0;
+    font-size: 1.4rem;
+    font-family: 'Playfair Display', serif;
+}
+.month-nav-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+.month-nav-btn:hover { background: rgba(255,255,255,0.18); }
+
+.month-view-body {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.2rem;
+}
+.month-grid-wrapper { min-width: 0; }
+.month-weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.month-weekday-row > div {
+    text-align: center;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+    padding: 4px 0;
+}
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.month-day-cell {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    aspect-ratio: 1 / 1;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s, transform 0.15s;
+    position: relative;
+    min-height: 60px;
+}
+.month-day-cell:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-1px);
+}
+.month-day-cell.outside { opacity: 0.3; }
+.month-day-cell.today {
+    border-color: rgba(126, 207, 255, 0.7);
+    background: rgba(126, 207, 255, 0.12);
+}
+.month-day-cell.selected {
+    border-color: rgba(255, 210, 60, 0.9);
+    background: rgba(255, 210, 60, 0.12);
+}
+.month-day-num {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.month-day-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-top: auto;
+}
+.month-day-dots .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4caf50;
+}
+.month-day-count {
+    position: absolute;
+    bottom: 4px;
+    right: 6px;
+    font-size: 0.65rem;
+    opacity: 0.6;
+}
+
+.month-quick-preview {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+    max-height: 480px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.month-preview-add-btn {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.6rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(126, 207, 255, 0.5);
+    background: rgba(126, 207, 255, 0.18);
+    color: #cfe8ff;
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+}
+.month-preview-add-btn:hover {
+    background: rgba(126, 207, 255, 0.35);
+    transform: scale(1.08);
+}
+.month-quick-preview h3 {
+    font-size: 0.95rem;
+    font-family: 'Playfair Display', serif;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.4rem;
+}
+.month-preview-empty {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+    font-style: italic;
+    text-align: center;
+    padding: 2rem 0;
+}
+.month-preview-empty--clickable {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    border: 1px dashed rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    margin-top: 0.5rem;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.month-preview-empty--clickable:hover {
+    background: rgba(126, 207, 255, 0.08);
+    color: rgba(255,255,255,0.75);
+    border-color: rgba(126, 207, 255, 0.45);
+}
+.mp-empty-icon {
+    font-size: 1.7rem;
+    line-height: 1;
+    color: rgba(126, 207, 255, 0.7);
+}
+.month-preview-task {
+    padding: 0.5rem 0.6rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.month-preview-task .mp-time {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+/* Note pre-wrap respect (sticky + list) */
+.post-it span,
+.notes-view-list-item span {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Notes inline editor — auto-saving textarea */
+.notes-edit-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.2);
+    border: 1px dashed rgba(255,255,255,0.3);
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 70px;
+    outline: none;
+    white-space: pre-wrap;
+}
+.notes-edit-textarea--sticky {
+    background: rgba(0,0,0,0.05);
+    color: #333;
+    border-color: rgba(0,0,0,0.25);
+}
+.notes-autosave-indicator {
+    font-size: 0.65rem;
+    opacity: 0.55;
+    margin-left: 0.4rem;
+    font-style: italic;
+}
+
+/* Pin-from-library sticky widget */
+.sticky-pin-widget {
+    background: #fff8b0 !important;
+    color: #2a2a2a !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    border-radius: 4px !important;
+    box-shadow: 4px 6px 14px rgba(0,0,0,0.45) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 1.6rem 1rem 1rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+.sticky-pin-widget .drag-handle {
+    color: rgba(0,0,0,0.35);
+}
+.sticky-pin-widget .drag-handle:hover {
+    color: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.06);
+}
+.sticky-pin-widget .sticky-pin-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 0.3rem;
+}
+.sticky-pin-widget .sticky-pin-unpin {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.08);
+    color: rgba(0,0,0,0.55);
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+.sticky-pin-widget .sticky-pin-unpin:hover {
+    background: rgba(200, 0, 0, 0.18);
+    color: #b00;
+}
+
+/* Pin-to-dashboard button on Library sticky items */
+.item-icon-btn--pin {
+    color: rgba(0,0,0,0.55);
+}
+.item-icon-btn--pin:hover {
+    color: #c79100;
+    background: rgba(255, 200, 60, 0.2);
+}
+.item-icon-btn--pin.is-pinned {
+    color: #b8860b;
+    opacity: 0.95;
+}
+
+/* Floating launchpad dock — must sit above everything */
+.launchpad-dock {
+    z-index: 9999 !important;
+}
+
+/* Mobile fallback — disable absolute canvas, stack widgets */
+@media (max-width: 900px) {
+    .dashboard-grid {
+        position: static;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: none;
+    }
+    .dash-widget {
+        position: static !important;
+        width: 100% !important;
+    }
+    .month-view-body { grid-template-columns: 1fr; }
 }

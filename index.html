@@ -35,18 +35,50 @@
 
             <!-- Dashboard Tab -->
             <div id="tab-dashboard" class="tab-content active">
-                <main class="bento-card glass-panel" id="clock-card" style="margin: 0 auto;">
-                    <div class="analog-clock" id="analog-clock">
-                        <!-- Markers and dots injected via JS -->
-                        <svg id="clock-svg" class="clock-svg" viewBox="-1 -1 2 2"></svg>
-                        <div class="hand hour-hand" id="hour-hand"></div>
-                        <div class="hand minute-hand" id="minute-hand"></div>
-                        <div class="hand second-hand" id="second-hand"></div>
-                        <div class="center-dot"></div>
-                        <!-- Moving Current Time Dot -->
-                        <div class="current-time-dot" id="current-time-dot"></div>
+                <div class="dashboard-scroll" id="dashboard-scroll">
+                <div class="dashboard-grid" id="dashboard-grid">
+
+                    <!-- STATUS BAR (Persona) -->
+                    <div class="dash-widget status-bar-widget glass-panel" data-widget-id="status-bar">
+                        <div class="drag-handle" title="Drag to rearrange">⠿</div>
+                        <button class="resize-handle" title="Cycle size (S / M / L)">□</button>
+                        <div class="status-bar-content">
+                            <span id="status-bar-icon" class="status-bar-icon">✨</span>
+                            <span id="status-bar-text" class="status-bar-text">Loading your day...</span>
+                        </div>
                     </div>
-                </main>
+
+                    <!-- CLOCK -->
+                    <div class="dash-widget clock-widget bento-card glass-panel" id="clock-card" data-widget-id="clock">
+                        <div class="drag-handle" title="Drag to rearrange">⠿</div>
+                        <button class="resize-handle" title="Cycle size (S / M / L)">□</button>
+                        <!-- ClockWidget instance is mounted here at boot -->
+                        <div class="clock-mount" data-clock-host="dashboard"></div>
+                    </div>
+
+                    <!-- PINNED NOTES -->
+                    <div class="dash-widget pinned-notes-widget bento-card glass-panel" data-widget-id="pinned-notes">
+                        <div class="drag-handle" title="Drag to rearrange">⠿</div>
+                        <button class="resize-handle" title="Cycle size (S / M / L)">□</button>
+                        <h2>📌 Pinned Notes</h2>
+                        <div class="pinned-notes-input-row">
+                            <input type="text" id="pinned-note-input" placeholder="Add a quick pinned note...">
+                            <button id="pinned-note-add" class="primary-btn small-btn">Pin</button>
+                        </div>
+                        <ul id="pinned-notes-list" class="pinned-notes-list"></ul>
+                    </div>
+
+                    <!-- LAUNCHPAD (Categorized) -->
+                    <div class="dash-widget launchpad-widget bento-card glass-panel" data-widget-id="launchpad">
+                        <div class="drag-handle" title="Drag to rearrange">⠿</div>
+                        <button class="resize-handle" title="Cycle size (S / M / L)">□</button>
+                        <h2>🚀 Launchpad</h2>
+                        <div id="launchpad-categories" class="launchpad-categories"></div>
+                    </div>
+
+                </div>
+                </div>
+
                 <div id="next-task-container" class="next-task-widget glass-panel hidden">
                     <div class="next-task-header">Next Task</div>
                     <div class="next-task-content">
@@ -62,18 +94,15 @@
             <!-- Schedule Tab -->
             <div id="tab-schedule" class="tab-content" style="position: relative;">
                 
-                <!-- Mini Clock for Schedule Tab -->
-                <div class="analog-clock mini-clock" id="analog-clock-mini">
-                    <svg id="clock-svg-mini" class="clock-svg" viewBox="-1 -1 2 2"></svg>
-                    <div class="hand hour-hand"></div>
-                    <div class="hand minute-hand"></div>
-                    <div class="hand second-hand"></div>
-                    <div class="center-dot"></div>
-                    <!-- Moving Current Time Dot -->
-                    <div class="current-time-dot"></div>
+                <!-- Mini Clock for Schedule Tab — ClockWidget instance + persisted position -->
+                <div class="mini-clock-host" id="schedule-clock-host" data-clock-host="schedule"></div>
+
+                <div class="schedule-view-toggle">
+                    <button id="schedule-day-btn" class="schedule-toggle-btn active" data-view="day">📅 Day View</button>
+                    <button id="schedule-month-btn" class="schedule-toggle-btn" data-view="month">🗓️ Month View</button>
                 </div>
 
-                <section class="bento-card glass-panel" id="tasks-card" style="margin-right: auto; max-width: 65%;">
+                <section class="bento-card glass-panel schedule-day-view" id="tasks-card" style="margin-right: auto; max-width: 65%;">
                     <h2>Quick Tasks</h2>
                     <div class="task-input-row">
                         <input type="date" id="task-date-picker" title="Select Date">
@@ -87,6 +116,26 @@
                         <button id="add-task-btn" class="primary-btn small-btn">Add</button>
                     </div>
                     <ul id="task-list" class="task-list"></ul>
+                </section>
+
+                <!-- Month View -->
+                <section class="bento-card glass-panel schedule-month-view hidden" id="month-view-card">
+                    <div class="month-view-header">
+                        <button id="month-prev-btn" class="month-nav-btn">‹</button>
+                        <h2 id="month-view-title">Month</h2>
+                        <button id="month-next-btn" class="month-nav-btn">›</button>
+                    </div>
+                    <div class="month-view-body">
+                        <div class="month-grid-wrapper">
+                            <div class="month-weekday-row">
+                                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                            </div>
+                            <div id="month-grid" class="month-grid"></div>
+                        </div>
+                        <aside id="month-quick-preview" class="month-quick-preview">
+                            <div class="month-preview-empty">Click a day to preview tasks.</div>
+                        </aside>
+                    </div>
                 </section>
             </div>
 
@@ -136,8 +185,21 @@
                     </div>
 
                     <div class="settings-section">
+                        <h2>Persona Engine</h2>
+                        <div class="settings-group">
+                            <label class="settings-label">Dashboard Tone</label>
+                            <select id="tone-select" class="theme-select" style="width: 100%;">
+                                <option value="professional">Professional</option>
+                                <option value="motivational">Motivational</option>
+                                <option value="minimalist">Minimalist</option>
+                                <option value="friendly">Friendly &amp; Chill</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h2>Hub Settings</h2>
-                        
+
                         <div class="switch-row">
                             <span>Enable Daily Quotes</span>
                             <label class="switch">
@@ -168,10 +230,10 @@
                             <input type="text" id="reminder-icon" class="note-input" placeholder="e.g. 🔔 or https://image.url" value="🔔">
                         </div>
 
-                        <h2>Dock Customization</h2>
-                        <div id="dock-links-settings" class="dock-settings-grid">
-                            <!-- JS will inject 4 link editors here -->
-                        </div>
+                        <h2>Launchpad Categories</h2>
+                        <p style="font-size:0.8rem;opacity:0.6;margin-bottom:0.8rem;">Group your shortcuts into folders. Click a category header to expand on the dashboard.</p>
+                        <div id="launchpad-categories-settings" class="launchpad-categories-settings"></div>
+                        <button id="add-category-btn" class="primary-btn small-btn" style="margin-top:0.5rem;">+ Add Category</button>
                     </div>
                 </section>
             </div>

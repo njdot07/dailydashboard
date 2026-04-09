@@ -35,8 +35,17 @@ const noteSection = document.getElementById('note-section');
 
 const taskDatePicker = document.getElementById('task-date-picker');
 
+// Local-timezone date string helper (avoids UTC drift on .toISOString())
+function localDateStr(d) {
+    d = d || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 // State
-let currentSelectedDate = new Date().toISOString().split('T')[0];
+let currentSelectedDate = localDateStr();
 if (taskDatePicker) taskDatePicker.value = currentSelectedDate;
 
 let userData = JSON.parse(localStorage.getItem('fs_user_data')) || {};
@@ -121,6 +130,37 @@ function initDataForDate(dateStr) {
             ]
         };
     }
+
+    // ---- Smart Office OS additions ----
+    if (!userData.settings.dashboardTone) userData.settings.dashboardTone = 'professional';
+
+    if (!userData.settings.launchpadCategories) {
+        // Migrate old flat dockLinks into a default "Work" category
+        const migrated = (userData.settings.dockLinks || []).filter(l => l.url);
+        userData.settings.launchpadCategories = [
+            {
+                id: generateId(),
+                name: 'Work',
+                open: true,
+                links: migrated.length ? migrated : [
+                    { name: 'Teams', url: 'https://teams.microsoft.com', icon: '💬' },
+                    { name: 'Outlook', url: 'https://outlook.office.com', icon: '📧' }
+                ]
+            },
+            {
+                id: generateId(),
+                name: 'Social',
+                open: false,
+                links: [
+                    { name: 'YouTube', url: 'https://youtube.com', icon: '▶️' }
+                ]
+            }
+        ];
+    }
+
+    if (!userData.pinnedNotes) userData.pinnedNotes = [];
+    if (!userData.pinnedStickies) userData.pinnedStickies = []; // pinned from Library
+    if (!userData.dashboardWidgets) userData.dashboardWidgets = {};
 }
 
 function sortTasks() {
@@ -153,7 +193,7 @@ function saveTasks() { saveUserData(); }
 
 if (taskDatePicker) {
     taskDatePicker.addEventListener('change', (e) => {
-        currentSelectedDate = e.target.value || new Date().toISOString().split('T')[0];
+        currentSelectedDate = e.target.value || localDateStr();
         loadData();
     });
 }
@@ -202,12 +242,48 @@ displayNewQuote();
 
 
 // ==========================================
-// 3. Clock Logic Module
+// 3. Clock Logic Module — Unified Component
 // ==========================================
-function initClockMarkers() {
-    const clocks = document.querySelectorAll('.analog-clock');
-    clocks.forEach(clock => {
-        // Generate 12 hour markers
+/**
+ * ClockWidget — modular analog clock component.
+ * Multiple instances can coexist; each owns its own DOM under a host container.
+ * The global updateClock() loop continues to drive every instance via
+ * .analog-clock querySelectorAll, so a single rAF tick advances all clocks.
+ */
+class ClockWidget {
+    constructor(host, opts = {}) {
+        if (!host) throw new Error('ClockWidget needs a host element');
+        this.host = host;
+        this.id = opts.id || host.id || ('clock-' + Math.random().toString(36).slice(2, 8));
+        this.variant = opts.variant || 'default'; // 'default' | 'mini'
+        this.render();
+        this._buildMarkers();
+    }
+
+    render() {
+        // Reuse existing host if it already contains an .analog-clock (idempotent)
+        if (this.host.querySelector('.analog-clock')) {
+            this.clockEl = this.host.querySelector('.analog-clock');
+            return;
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'analog-clock' + (this.variant === 'mini' ? ' mini-clock' : '');
+        wrap.dataset.clockId = this.id;
+        wrap.innerHTML = `
+            <svg class="clock-svg" viewBox="-1 -1 2 2"></svg>
+            <div class="hand hour-hand"></div>
+            <div class="hand minute-hand"></div>
+            <div class="hand second-hand"></div>
+            <div class="center-dot"></div>
+            <div class="current-time-dot"></div>
+        `;
+        this.host.appendChild(wrap);
+        this.clockEl = wrap;
+    }
+
+    _buildMarkers() {
+        const clock = this.clockEl;
+        if (!clock || clock.dataset.markersBuilt === '1') return;
         for (let i = 0; i < 12; i++) {
             const marker = document.createElement('div');
             marker.className = i % 3 === 0 ? 'clock-marker major' : 'clock-marker';
@@ -219,16 +295,42 @@ function initClockMarkers() {
                 num.className = 'clock-number';
                 num.textContent = i === 0 ? '12' : i;
                 const angleRad = (i * 30 - 90) * (Math.PI / 180);
-                const r = 90; 
+                const r = 90;
                 const x = 125 + r * Math.cos(angleRad);
                 const y = 125 + r * Math.sin(angleRad);
-                
                 num.style.left = `${x}px`;
                 num.style.top = `${y - 12}px`;
-                num.style.transform = `translate(-50%)`; 
-                
+                num.style.transform = `translate(-50%)`;
                 clock.appendChild(num);
             }
+        }
+        clock.dataset.markersBuilt = '1';
+    }
+
+    destroy() {
+        if (this.clockEl && this.clockEl.parentNode) {
+            this.clockEl.parentNode.removeChild(this.clockEl);
+        }
+        this.clockEl = null;
+    }
+}
+
+// Module-level registry of mounted clocks
+const clockInstances = [];
+
+function initClockMarkers() {
+    // Mount a ClockWidget into every container marked with [data-clock-host]
+    document.querySelectorAll('[data-clock-host]').forEach(host => {
+        const variant = host.dataset.clockHost === 'schedule' ? 'mini' : 'default';
+        const inst = new ClockWidget(host, { variant });
+        clockInstances.push(inst);
+    });
+    // Backward-compat: pick up any pre-existing .analog-clock that wasn't mounted via host
+    document.querySelectorAll('.analog-clock').forEach(el => {
+        if (el.dataset.markersBuilt !== '1') {
+            // Synthesise an instance to drive marker generation
+            const fake = { host: el.parentElement || el, clockEl: el, _buildMarkers: ClockWidget.prototype._buildMarkers };
+            ClockWidget.prototype._buildMarkers.call(fake);
         }
     });
 }
@@ -276,8 +378,10 @@ requestAnimationFrame(updateClock);
 
 // Modal Implementations
 let taskEditIndex = -1;
+let taskModalIsNew = false; // true when modal was opened for adding
 function openTaskModal(index) {
     taskEditIndex = index;
+    taskModalIsNew = false;
     const task = tasks[index];
     document.getElementById('modal-task-text').value = task.text;
     document.getElementById('modal-task-time').value = task.time || "";
@@ -286,9 +390,41 @@ function openTaskModal(index) {
     document.getElementById('task-edit-modal').classList.remove('hidden');
 }
 
+/** Open the task modal in "new task" mode, targeting the given date. */
+function openAddTaskModalForDate(dateStr) {
+    // Switch active date, load that day's tasks into the module-level `tasks` ref
+    currentSelectedDate = dateStr;
+    if (taskDatePicker) taskDatePicker.value = dateStr;
+    initDataForDate(dateStr);
+
+    // Push a blank task placeholder and open the edit modal on it
+    tasks.push({ text: '', time: '', timeEnd: '', duration: '', color: '#ff4d4d', completed: false });
+    taskEditIndex = tasks.length - 1;
+    taskModalIsNew = true;
+
+    document.getElementById('modal-task-text').value = '';
+    document.getElementById('modal-task-time').value = '';
+    document.getElementById('modal-task-time-end').value = '';
+    document.getElementById('modal-task-duration').value = '';
+    document.getElementById('task-edit-modal').classList.remove('hidden');
+    setTimeout(() => {
+        const input = document.getElementById('modal-task-text');
+        if (input) input.focus();
+    }, 50);
+}
+
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 if(modalCancelBtn) {
-    modalCancelBtn.addEventListener('click', () => document.getElementById('task-edit-modal').classList.add('hidden'));
+    modalCancelBtn.addEventListener('click', () => {
+        // If this was a "new task" modal that the user cancelled, drop the placeholder
+        if (taskModalIsNew && taskEditIndex >= 0) {
+            tasks.splice(taskEditIndex, 1);
+            saveTasks();
+        }
+        taskModalIsNew = false;
+        taskEditIndex = -1;
+        document.getElementById('task-edit-modal').classList.add('hidden');
+    });
 }
 
 const modalSaveBtn = document.getElementById('modal-save-btn');
@@ -296,14 +432,29 @@ if(modalSaveBtn) {
     modalSaveBtn.addEventListener('click', () => {
         if(taskEditIndex === -1) return;
         const nText = document.getElementById('modal-task-text').value.trim();
-        if(nText) tasks[taskEditIndex].text = nText;
-        
-        tasks[taskEditIndex].time = document.getElementById('modal-task-time').value;
-        tasks[taskEditIndex].timeEnd = document.getElementById('modal-task-time-end').value;
-        tasks[taskEditIndex].duration = document.getElementById('modal-task-duration').value.trim();
-        
+
+        if (taskModalIsNew && !nText) {
+            // Don't save an empty new task; drop the placeholder
+            tasks.splice(taskEditIndex, 1);
+            saveTasks();
+        } else {
+            if(nText) tasks[taskEditIndex].text = nText;
+            tasks[taskEditIndex].time = document.getElementById('modal-task-time').value;
+            tasks[taskEditIndex].timeEnd = document.getElementById('modal-task-time-end').value;
+            tasks[taskEditIndex].duration = document.getElementById('modal-task-duration').value.trim();
+            sortTasks();
+            saveTasks();
+        }
+
+        // Refresh month view if open so new task dots appear
+        if (typeof renderMonthView === 'function' && scheduleView === 'month') {
+            renderMonthView();
+            if (monthSelectedDate) renderMonthPreview(monthSelectedDate);
+        }
+
+        taskModalIsNew = false;
+        taskEditIndex = -1;
         document.getElementById('task-edit-modal').classList.add('hidden');
-        saveTasks();
     });
 }
 
@@ -656,6 +807,12 @@ if(addTaskBtn) {
     addTaskBtn.addEventListener('click', () => {
         const text = taskInput.value.trim();
         if (!text) return;
+        // Smart date: if Month View has a selected day, target that date
+        if (typeof scheduleView !== 'undefined' && scheduleView === 'month' && monthSelectedDate) {
+            currentSelectedDate = monthSelectedDate;
+            if (taskDatePicker) taskDatePicker.value = monthSelectedDate;
+            initDataForDate(currentSelectedDate);
+        }
         const duration = taskDuration ? taskDuration.value.trim() : "";
         const time = taskTime.value;
         let timeEnd = taskTimeEnd ? taskTimeEnd.value : "";
@@ -1054,6 +1211,18 @@ function renderNotesContentPane(section, space) {
             const actions = document.createElement('div');
             actions.className = 'item-actions item-actions--sticky';
 
+            // Pin to Dashboard button
+            const pinBtn = document.createElement('button');
+            const isPinned = !!(userData.pinnedStickies || []).find(p => p.sourceId === item.id);
+            pinBtn.className = 'item-icon-btn item-icon-btn--sticky item-icon-btn--pin' + (isPinned ? ' is-pinned' : '');
+            pinBtn.textContent = isPinned ? '📍' : '📌';
+            pinBtn.title = isPinned ? 'Unpin from Dashboard' : 'Pin to Dashboard';
+            pinBtn.addEventListener('click', () => {
+                togglePinStickyToDashboard(item);
+                renderNotesContentPane(section, space);
+            });
+            actions.appendChild(pinBtn);
+
             const editBtn = document.createElement('button');
             editBtn.className = 'item-icon-btn item-icon-btn--sticky';
             editBtn.textContent = '✏️';
@@ -1061,10 +1230,18 @@ function renderNotesContentPane(section, space) {
             editBtn.addEventListener('click', () => {
                 const ta = document.createElement('textarea');
                 ta.value = item.text;
-                ta.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(0,0,0,0.07);border:1px dashed rgba(0,0,0,0.3);font-family:inherit;border-radius:4px;padding:2px 4px;color:#333;resize:none;';
-                const save = () => { const v = ta.value.trim(); if (v) { section.items[iIdx].text = v; saveUserData(); renderNotesContentPane(section, space); } };
-                ta.addEventListener('blur', save);
-                ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) ta.blur(); });
+                ta.className = 'notes-edit-textarea notes-edit-textarea--sticky';
+                // Debounced auto-save: persists 1s after user stops typing
+                const debouncedSave = debounce(() => {
+                    section.items[iIdx].text = ta.value;
+                    localStorage.setItem('fs_user_data', JSON.stringify(userData));
+                }, 1000);
+                ta.addEventListener('input', debouncedSave);
+                ta.addEventListener('blur', () => {
+                    section.items[iIdx].text = ta.value;
+                    saveUserData();
+                    renderNotesContentPane(section, space);
+                });
                 textSpan.replaceWith(ta); ta.focus();
             });
 
@@ -1096,14 +1273,21 @@ function renderNotesContentPane(section, space) {
             editBtn.textContent = '✏️';
             editBtn.title = 'Edit';
             editBtn.addEventListener('click', () => {
-                const inp2 = document.createElement('input');
-                inp2.type = 'text';
-                inp2.value = item.text;
-                inp2.style.cssText = 'flex:1;background:rgba(0,0,0,0.15);border:1px dashed rgba(255,255,255,0.3);border-radius:4px;padding:2px 6px;color:#fff;font-family:inherit;outline:none;';
-                const save = () => { const v = inp2.value.trim(); if (v) { section.items[iIdx].text = v; saveUserData(); renderNotesContentPane(section, space); } };
-                inp2.addEventListener('blur', save);
-                inp2.addEventListener('keydown', e => { if (e.key === 'Enter') inp2.blur(); });
-                textSpan.replaceWith(inp2); inp2.focus();
+                const ta = document.createElement('textarea');
+                ta.value = item.text;
+                ta.className = 'notes-edit-textarea';
+                // Debounced auto-save (1s)
+                const debouncedSave = debounce(() => {
+                    section.items[iIdx].text = ta.value;
+                    localStorage.setItem('fs_user_data', JSON.stringify(userData));
+                }, 1000);
+                ta.addEventListener('input', debouncedSave);
+                ta.addEventListener('blur', () => {
+                    section.items[iIdx].text = ta.value;
+                    saveUserData();
+                    renderNotesContentPane(section, space);
+                });
+                textSpan.replaceWith(ta); ta.focus();
             });
 
             const delBtn = document.createElement('button');
@@ -1192,69 +1376,46 @@ function initQuoteToggle() {
     });
 }
 
-// --- Launchpad Dock ---
+// --- Floating Launchpad Dock — visibility-toggleable, sits above all layers ---
 function initDockLogic() {
     const toggle = document.getElementById('dock-toggle');
     const dock = document.getElementById('launchpad-dock');
-    const settingsGrid = document.getElementById('dock-links-settings');
-    if (!toggle || !dock || !settingsGrid) return;
+    if (!toggle || !dock) return;
 
+    // Honor saved setting (default: enabled)
+    if (typeof userData.settings.dockEnabled !== 'boolean') {
+        userData.settings.dockEnabled = true;
+    }
     toggle.checked = userData.settings.dockEnabled;
     dock.classList.toggle('hidden', !userData.settings.dockEnabled);
+    dock.style.zIndex = '9999'; // always on top
 
     toggle.addEventListener('change', () => {
         userData.settings.dockEnabled = toggle.checked;
         dock.classList.toggle('hidden', !toggle.checked);
         saveUserData();
+        renderFloatingDock();
     });
 
-    renderDock();
-    renderDockSettings();
+    renderFloatingDock();
 }
 
-function renderDock() {
+/** Render the bottom floating dock from launchpadCategories (flattened) */
+function renderFloatingDock() {
     const dock = document.getElementById('launchpad-dock');
     if (!dock) return;
     dock.innerHTML = '';
-    
-    userData.settings.dockLinks.forEach(link => {
-        if (!link.url || !link.icon) return;
-        const a = document.createElement('a');
-        a.href = link.url;
-        a.target = '_blank';
-        a.className = 'dock-item';
-        a.innerHTML = `
-            <span>${link.icon}</span>
-            <div class="tooltip">${link.name}</div>
-        `;
-        dock.appendChild(a);
-    });
-}
-
-function renderDockSettings() {
-    const settingsGrid = document.getElementById('dock-links-settings');
-    if (!settingsGrid) return;
-    settingsGrid.innerHTML = '';
-
-    userData.settings.dockLinks.forEach((link, idx) => {
-        const card = document.createElement('div');
-        card.className = 'dock-link-card';
-        card.innerHTML = `
-            <div style="font-size: 0.8rem; margin-bottom: 5px; opacity: 0.6;">Link ${idx + 1}</div>
-            <input type="text" placeholder="Name" value="${link.name}" data-idx="${idx}" data-field="name">
-            <input type="text" placeholder="URL" value="${link.url}" data-idx="${idx}" data-field="url">
-            <input type="text" placeholder="Icon (Emoji/URL)" value="${link.icon}" data-idx="${idx}" data-field="icon">
-        `;
-        settingsGrid.appendChild(card);
-    });
-
-    settingsGrid.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            const idx = e.target.dataset.idx;
-            const field = e.target.dataset.field;
-            userData.settings.dockLinks[idx][field] = e.target.value;
-            saveUserData();
-            renderDock();
+    const cats = (userData.settings && userData.settings.launchpadCategories) || [];
+    cats.forEach(cat => {
+        (cat.links || []).forEach(link => {
+            if (!link.url) return;
+            const a = document.createElement('a');
+            a.href = link.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.className = 'dock-item';
+            a.innerHTML = `<span>${escapeHtml(link.icon || '🔗')}</span><div class="tooltip">${escapeHtml(link.name || '')}</div>`;
+            dock.appendChild(a);
         });
     });
 }
@@ -1364,12 +1525,858 @@ function triggerReminderAlert(task) {
     }, 10000);
 }
 
+// ==========================================
+// 10. Persona Engine — Tone-aware Status Bar
+// ==========================================
+const TONE_TEMPLATES = {
+    professional: {
+        idle: 'No upcoming items. Your schedule is clear.',
+        next: (t, time) => `Your next meeting is "${t}" at ${time}.`,
+        icon: '📋'
+    },
+    motivational: {
+        idle: "Today is yours — let's make it count! 💪",
+        next: (t, time) => `🔥 Next up: "${t}" at ${time}. You've got this!`,
+        icon: '🚀'
+    },
+    minimalist: {
+        idle: '— clear —',
+        next: (t, time) => `${time}  ·  ${t}`,
+        icon: '·'
+    },
+    friendly: {
+        idle: "Nothing on the schedule — chill vibes only ✌️",
+        next: (t, time) => `Hey! "${t}" coming up at ${time} 😊`,
+        icon: '✨'
+    }
+};
+
+function updateStatusBar() {
+    const textEl = document.getElementById('status-bar-text');
+    const iconEl = document.getElementById('status-bar-icon');
+    if (!textEl || !iconEl) return;
+
+    const tone = userData.settings.dashboardTone || 'professional';
+    const tpl = TONE_TEMPLATES[tone] || TONE_TEMPLATES.professional;
+
+    // Find next upcoming task (today only)
+    const todayStr = localDateStr();
+    const todayData = userData[todayStr];
+    const todayTasks = todayData ? (todayData.tasks || []) : [];
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const next = todayTasks
+        .filter(t => !t.completed && t.time)
+        .sort((a, b) => a.time.localeCompare(b.time))
+        .find(t => {
+            const [h, m] = t.time.split(':').map(Number);
+            return (h * 60 + m) >= nowMin;
+        });
+
+    iconEl.textContent = tpl.icon;
+    textEl.textContent = next ? tpl.next(next.text, next.time) : tpl.idle;
+}
+
+function initToneSelector() {
+    const sel = document.getElementById('tone-select');
+    if (!sel) return;
+    sel.value = userData.settings.dashboardTone || 'professional';
+    sel.addEventListener('change', () => {
+        userData.settings.dashboardTone = sel.value;
+        saveUserData();
+        updateStatusBar();
+    });
+}
+
+// ==========================================
+// 11. Spatial Dashboard — Snap-to-Grid Drag Engine
+// ==========================================
+// Grid: 200px cells, 25px gap, 225px stride
+const GRID_CELL = 200;
+const GRID_GAP = 25;
+const STRIDE = GRID_CELL + GRID_GAP; // 225
+const SIZES = ['small', 'medium', 'large'];
+const DEFAULT_SIZES = {
+    'status-bar':   'medium',
+    'clock':        'large',
+    'pinned-notes': 'large',
+    'launchpad':    'medium'
+};
+let topZ = 100;
+
+// Default starting positions (in px) for each known widget id.
+const DEFAULT_WIDGET_POSITIONS = {
+    'status-bar':   { x: 25,  y: 25,  z: 100 },
+    'clock':        { x: 25,  y: 250, z: 101 },
+    'pinned-notes': { x: 475, y: 250, z: 102 },
+    'launchpad':    { x: 25,  y: 700, z: 103 }
+};
+
+function getWidgetPositions() {
+    if (!userData.dashboardWidgets) userData.dashboardWidgets = {};
+    return userData.dashboardWidgets;
+}
+
+function persistWidgetPositions() {
+    localStorage.setItem('fs_user_data', JSON.stringify(userData));
+}
+
+function applyWidgetPosition(el) {
+    const id = el.dataset.widgetId;
+    const positions = getWidgetPositions();
+    const pos = positions[id] || DEFAULT_WIDGET_POSITIONS[id] || { x: 25, y: 25, z: ++topZ };
+    el.style.left = pos.x + 'px';
+    el.style.top  = pos.y + 'px';
+    el.style.zIndex = pos.z || 100;
+    if (pos.z && pos.z > topZ) topZ = pos.z;
+
+    // Apply size preset (from saved state, default, or existing class)
+    const savedSize = pos.size || DEFAULT_SIZES[id] || (id && id.startsWith('pin-sticky-') ? 'small' : 'medium');
+    SIZES.forEach(s => el.classList.remove('size-' + s));
+    el.classList.add('size-' + savedSize);
+}
+
+function applyAllWidgetPositions() {
+    document.querySelectorAll('#dashboard-grid .dash-widget').forEach(applyWidgetPosition);
+}
+
+function cycleWidgetSize(el) {
+    const id = el.dataset.widgetId;
+    const positions = getWidgetPositions();
+    const cur = positions[id] && positions[id].size
+        ? positions[id].size
+        : (DEFAULT_SIZES[id] || (id.startsWith('pin-sticky-') ? 'small' : 'medium'));
+    const next = SIZES[(SIZES.indexOf(cur) + 1) % SIZES.length];
+    SIZES.forEach(s => el.classList.remove('size-' + s));
+    el.classList.add('size-' + next);
+    if (!positions[id]) positions[id] = { x: parseInt(el.style.left, 10) || 25, y: parseInt(el.style.top, 10) || 25, z: ++topZ };
+    positions[id].size = next;
+    persistWidgetPositions();
+}
+
+/**
+ * Pointer-based snap-to-grid drag.
+ * Only attaches to the .drag-handle, so widget body clicks (buttons,
+ * inputs, links) are never intercepted.
+ */
+function snapToGrid(v) {
+    // Snap to the 25px-gap inset of each 225px stride cell
+    return Math.max(GRID_GAP, Math.round((v - GRID_GAP) / STRIDE) * STRIDE + GRID_GAP);
+}
+
+function makeWidgetDraggable(el) {
+    if (el.dataset.dragBound === '1') return;
+    const handle = el.querySelector('.drag-handle');
+    if (!handle) return;
+    el.dataset.dragBound = '1';
+
+    handle.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const canvas = el.parentElement; // #dashboard-grid
+        // Cache the canvas rect ONCE per drag — rAF reads stale values otherwise
+        // and recomputing per move was the main source of jank.
+        const parentRect = canvas.getBoundingClientRect();
+        const startScrollX = canvas.parentElement ? canvas.parentElement.scrollLeft : 0;
+        const startScrollY = canvas.parentElement ? canvas.parentElement.scrollTop  : 0;
+        const rect = el.getBoundingClientRect();
+        const offX = e.clientX - rect.left;
+        const offY = e.clientY - rect.top;
+
+        topZ++;
+        el.style.zIndex = topZ;
+        el.classList.add('dragging');
+        try { handle.setPointerCapture(e.pointerId); } catch(_) {}
+
+        // rAF-throttled pointer state
+        let pendingX = parseInt(el.style.left, 10) || 0;
+        let pendingY = parseInt(el.style.top,  10) || 0;
+        let rafId = 0;
+        let needsFrame = false;
+
+        const flush = () => {
+            rafId = 0;
+            needsFrame = false;
+            // Free movement: no clamp, no snap, no collision detection during drag.
+            // Final snap happens once on pointerup.
+            el.style.left = pendingX + 'px';
+            el.style.top  = pendingY + 'px';
+        };
+
+        const onMove = (ev) => {
+            // Account for any in-flight scroll of the dashboard viewport.
+            const scroller = canvas.parentElement;
+            const scrollDX = scroller ? (scroller.scrollLeft - startScrollX) : 0;
+            const scrollDY = scroller ? (scroller.scrollTop  - startScrollY) : 0;
+            pendingX = ev.clientX - parentRect.left - offX + scrollDX;
+            pendingY = ev.clientY - parentRect.top  - offY + scrollDY;
+            if (!needsFrame) {
+                needsFrame = true;
+                rafId = requestAnimationFrame(flush);
+            }
+        };
+
+        const onUp = () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            if (rafId) cancelAnimationFrame(rafId);
+            el.classList.remove('dragging');
+            try { handle.releasePointerCapture(e.pointerId); } catch(_) {}
+
+            // Final snap-to-grid + soft clamp on drop
+            let finalX = snapToGrid(Math.max(GRID_GAP, pendingX));
+            let finalY = snapToGrid(Math.max(GRID_GAP, pendingY));
+            el.style.left = finalX + 'px';
+            el.style.top  = finalY + 'px';
+
+            const positions = getWidgetPositions();
+            const id = el.dataset.widgetId;
+            const cur = positions[id] || {};
+            positions[id] = {
+                x: finalX,
+                y: finalY,
+                z: topZ,
+                size: cur.size || DEFAULT_SIZES[id] || (id.startsWith('pin-sticky-') ? 'small' : 'medium')
+            };
+            persistWidgetPositions();
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+    });
+
+    // Resize handle (cycles S → M → L)
+    const resizeBtn = el.querySelector('.resize-handle');
+    if (resizeBtn) {
+        resizeBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            cycleWidgetSize(el);
+        });
+    }
+}
+
+function initSpatialDashboard() {
+    applyAllWidgetPositions();
+    document.querySelectorAll('#dashboard-grid .dash-widget').forEach(makeWidgetDraggable);
+    initDashboardScrollPersistence();
+    initReactiveResize();
+}
+
+// ==========================================
+// 11b. Scroll persistence
+// ==========================================
+function initDashboardScrollPersistence() {
+    const scroller = document.getElementById('dashboard-scroll');
+    if (!scroller) return;
+
+    const saved = userData.dashboardScroll || { x: 0, y: 0 };
+    requestAnimationFrame(() => {
+        scroller.scrollLeft = saved.x || 0;
+        scroller.scrollTop  = saved.y || 0;
+    });
+
+    const saveScroll = debounce(() => {
+        userData.dashboardScroll = {
+            x: scroller.scrollLeft,
+            y: scroller.scrollTop
+        };
+        localStorage.setItem('fs_user_data', JSON.stringify(userData));
+    }, 250);
+    scroller.addEventListener('scroll', saveScroll);
+}
+
+// ==========================================
+// 11c. Reactive Resize — ResizeObserver drives proportional scaling
+// ==========================================
+function initReactiveResize() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const el = entry.target;
+            const w = entry.contentRect.width;
+            const h = entry.contentRect.height;
+            // Expose live dimensions as CSS vars so child elements (e.g. clock,
+            // notes text) can scale via clamp() / calc() without JS layout reads.
+            el.style.setProperty('--w', w + 'px');
+            el.style.setProperty('--h', h + 'px');
+            // For the clock widget: scale the inner 250px clock face to fill
+            const clockEl = el.querySelector('.analog-clock');
+            if (clockEl) {
+                const target = Math.min(w, h) - 24; // padding allowance
+                const scale = Math.max(0.4, target / 256); // base face is 256
+                clockEl.style.transform = `scale(${scale})`;
+                clockEl.style.transformOrigin = 'center center';
+            }
+        }
+    });
+    document.querySelectorAll('#dashboard-grid .dash-widget').forEach(el => ro.observe(el));
+    // Re-observe new pinned-sticky widgets when they appear
+    window.__dashResizeObserver = ro;
+}
+
+// ==========================================
+// 11d. Schedule Clock — draggable + persisted coordinates
+// ==========================================
+function initScheduleClockPersistence() {
+    const host = document.getElementById('schedule-clock-host');
+    if (!host) return;
+
+    // Restore saved position
+    const pos = userData.scheduleClockPos || null;
+    if (pos) {
+        host.style.left  = pos.x + 'px';
+        host.style.top   = pos.y + 'px';
+        host.style.right = 'auto';
+    }
+
+    let dragState = null;
+    host.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        // Don't start drag on inner elements that consume clicks
+        if (e.target.closest('button, input, a')) return;
+        e.preventDefault();
+        const rect = host.getBoundingClientRect();
+        const parentRect = host.parentElement.getBoundingClientRect();
+        dragState = {
+            offX: e.clientX - rect.left,
+            offY: e.clientY - rect.top,
+            parentRect,
+            pendingX: rect.left - parentRect.left,
+            pendingY: rect.top  - parentRect.top,
+            rafId: 0
+        };
+        try { host.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    host.addEventListener('pointermove', (e) => {
+        if (!dragState) return;
+        dragState.pendingX = e.clientX - dragState.parentRect.left - dragState.offX;
+        dragState.pendingY = e.clientY - dragState.parentRect.top  - dragState.offY;
+        if (!dragState.rafId) {
+            dragState.rafId = requestAnimationFrame(() => {
+                if (!dragState) return;
+                host.style.left  = dragState.pendingX + 'px';
+                host.style.top   = dragState.pendingY + 'px';
+                host.style.right = 'auto';
+                dragState.rafId = 0;
+            });
+        }
+    });
+    const endDrag = (e) => {
+        if (!dragState) return;
+        userData.scheduleClockPos = {
+            x: parseInt(host.style.left, 10) || 0,
+            y: parseInt(host.style.top,  10) || 0
+        };
+        localStorage.setItem('fs_user_data', JSON.stringify(userData));
+        try { host.releasePointerCapture(e.pointerId); } catch(_) {}
+        dragState = null;
+    };
+    host.addEventListener('pointerup', endDrag);
+    host.addEventListener('pointercancel', endDrag);
+}
+
+// ==========================================
+// 12. Pinned Notes Widget
+// ==========================================
+function renderPinnedNotes() {
+    const list = document.getElementById('pinned-notes-list');
+    if (!list) return;
+    list.innerHTML = '';
+    (userData.pinnedNotes || []).forEach((note, idx) => {
+        const li = document.createElement('li');
+        const text = document.createElement('div');
+        text.className = 'pn-text';
+        text.textContent = note.text;
+        text.title = 'Click to edit';
+        text.addEventListener('click', () => {
+            const ta = document.createElement('textarea');
+            ta.className = 'pn-text';
+            ta.value = note.text;
+            text.replaceWith(ta);
+            ta.focus();
+            // Debounced auto-save
+            const debounced = debounce(() => {
+                userData.pinnedNotes[idx].text = ta.value;
+                localStorage.setItem('fs_user_data', JSON.stringify(userData));
+            }, 1000);
+            ta.addEventListener('input', debounced);
+            ta.addEventListener('blur', () => {
+                userData.pinnedNotes[idx].text = ta.value;
+                localStorage.setItem('fs_user_data', JSON.stringify(userData));
+                renderPinnedNotes();
+            });
+        });
+
+        const del = document.createElement('button');
+        del.className = 'item-icon-btn item-icon-btn--delete';
+        del.textContent = '✖';
+        del.title = 'Delete pinned note';
+        del.addEventListener('click', () => {
+            userData.pinnedNotes.splice(idx, 1);
+            localStorage.setItem('fs_user_data', JSON.stringify(userData));
+            renderPinnedNotes();
+        });
+
+        li.appendChild(text);
+        li.appendChild(del);
+        list.appendChild(li);
+    });
+}
+
+function initPinnedNotes() {
+    const input = document.getElementById('pinned-note-input');
+    const btn = document.getElementById('pinned-note-add');
+    if (!input || !btn) return;
+    const add = () => {
+        const v = input.value.trim();
+        if (!v) return;
+        userData.pinnedNotes.push({ id: generateId(), text: v });
+        input.value = '';
+        localStorage.setItem('fs_user_data', JSON.stringify(userData));
+        renderPinnedNotes();
+    };
+    btn.addEventListener('click', add);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+    renderPinnedNotes();
+}
+
+// ==========================================
+// 13. Categorized Launchpad
+// ==========================================
+function renderLaunchpadWidget() {
+    const container = document.getElementById('launchpad-categories');
+    if (!container) return;
+    container.innerHTML = '';
+    const cats = userData.settings.launchpadCategories || [];
+    if (!cats.length) {
+        container.innerHTML = '<p style="opacity:0.5;font-size:0.85rem;">No categories yet. Add some in Settings.</p>';
+        return;
+    }
+    cats.forEach((cat) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'launchpad-category' + (cat.open ? ' open' : '');
+
+        const header = document.createElement('div');
+        header.className = 'launchpad-category-header';
+        header.innerHTML = `<span>📁</span><span>${escapeHtml(cat.name)}</span><span class="launchpad-category-toggle">▶</span>`;
+        header.addEventListener('click', () => {
+            cat.open = !cat.open;
+            wrap.classList.toggle('open', cat.open);
+            saveUserData();
+        });
+
+        const body = document.createElement('div');
+        body.className = 'launchpad-category-body';
+        cat.links.forEach(link => {
+            if (!link.url) return;
+            const a = document.createElement('a');
+            a.className = 'launchpad-link';
+            a.href = link.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.innerHTML = `<span class="lp-icon">${escapeHtml(link.icon || '🔗')}</span><span>${escapeHtml(link.name || link.url)}</span>`;
+            body.appendChild(a);
+        });
+
+        wrap.appendChild(header);
+        wrap.appendChild(body);
+        container.appendChild(wrap);
+    });
+}
+
+function renderLaunchpadSettings() {
+    const root = document.getElementById('launchpad-categories-settings');
+    if (!root) return;
+    root.innerHTML = '';
+    const cats = userData.settings.launchpadCategories;
+
+    cats.forEach((cat, cIdx) => {
+        const card = document.createElement('div');
+        card.className = 'lp-cat-card';
+
+        const hdr = document.createElement('div');
+        hdr.className = 'lp-cat-card-header';
+        const nameInp = document.createElement('input');
+        nameInp.value = cat.name;
+        nameInp.placeholder = 'Category name';
+        nameInp.addEventListener('input', () => { cat.name = nameInp.value; saveUserData(); renderLaunchpadWidget(); renderFloatingDock(); });
+        const delCat = document.createElement('button');
+        delCat.className = 'icon-btn';
+        delCat.textContent = '✖';
+        delCat.title = 'Delete category';
+        delCat.addEventListener('click', () => {
+            if (confirm(`Delete category "${cat.name}"?`)) {
+                cats.splice(cIdx, 1);
+                saveUserData();
+                renderLaunchpadSettings();
+                renderLaunchpadWidget();
+            }
+        });
+        hdr.appendChild(nameInp);
+        hdr.appendChild(delCat);
+        card.appendChild(hdr);
+
+        cat.links.forEach((link, lIdx) => {
+            const row = document.createElement('div');
+            row.className = 'lp-cat-card-links';
+            const iName = document.createElement('input');
+            iName.placeholder = 'Name';
+            iName.value = link.name || '';
+            const iUrl = document.createElement('input');
+            iUrl.placeholder = 'https://...';
+            iUrl.value = link.url || '';
+            const iIcon = document.createElement('input');
+            iIcon.placeholder = 'Icon';
+            iIcon.value = link.icon || '';
+            const dl = document.createElement('button');
+            dl.className = 'icon-btn';
+            dl.textContent = '✖';
+            dl.title = 'Remove link';
+
+            iName.addEventListener('input', () => { link.name = iName.value; saveUserData(); renderLaunchpadWidget(); renderFloatingDock(); });
+            iUrl.addEventListener('input',  () => { link.url  = iUrl.value;  saveUserData(); renderLaunchpadWidget(); renderFloatingDock(); });
+            iIcon.addEventListener('input', () => { link.icon = iIcon.value; saveUserData(); renderLaunchpadWidget(); renderFloatingDock(); });
+            dl.addEventListener('click', () => {
+                cat.links.splice(lIdx, 1);
+                saveUserData();
+                renderLaunchpadSettings();
+                renderLaunchpadWidget();
+            });
+
+            row.appendChild(iName);
+            row.appendChild(iUrl);
+            row.appendChild(iIcon);
+            row.appendChild(dl);
+            card.appendChild(row);
+        });
+
+        const addLink = document.createElement('button');
+        addLink.className = 'lp-cat-card-add';
+        addLink.textContent = '+ Add Link';
+        addLink.addEventListener('click', () => {
+            cat.links.push({ name: '', url: '', icon: '🔗' });
+            saveUserData();
+            renderLaunchpadSettings();
+            renderLaunchpadWidget();
+            renderFloatingDock();
+        });
+        card.appendChild(addLink);
+
+        root.appendChild(card);
+    });
+}
+
+function initLaunchpadCategories() {
+    renderLaunchpadWidget();
+    renderLaunchpadSettings();
+    const addBtn = document.getElementById('add-category-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            userData.settings.launchpadCategories.push({
+                id: generateId(),
+                name: 'New Category',
+                open: true,
+                links: []
+            });
+            saveUserData();
+            renderLaunchpadSettings();
+            renderLaunchpadWidget();
+            renderFloatingDock();
+        });
+    }
+}
+
+// ==========================================
+// 14. Schedule Day / Month View
+// ==========================================
+let scheduleView = 'day';
+let monthCursor = new Date(); // first of currently-shown month
+monthCursor.setDate(1);
+let monthSelectedDate = null;
+
+function initScheduleViews() {
+    const dayBtn = document.getElementById('schedule-day-btn');
+    const monthBtn = document.getElementById('schedule-month-btn');
+    const dayView = document.getElementById('tasks-card');
+    const monthView = document.getElementById('month-view-card');
+    if (!dayBtn || !monthBtn || !dayView || !monthView) return;
+
+    const setView = (v) => {
+        scheduleView = v;
+        dayBtn.classList.toggle('active', v === 'day');
+        monthBtn.classList.toggle('active', v === 'month');
+        dayView.classList.toggle('hidden', v !== 'day');
+        monthView.classList.toggle('hidden', v !== 'month');
+        if (v === 'month') renderMonthView();
+    };
+    dayBtn.addEventListener('click', () => setView('day'));
+    monthBtn.addEventListener('click', () => setView('month'));
+
+    document.getElementById('month-prev-btn').addEventListener('click', () => {
+        monthCursor.setMonth(monthCursor.getMonth() - 1);
+        renderMonthView();
+    });
+    document.getElementById('month-next-btn').addEventListener('click', () => {
+        monthCursor.setMonth(monthCursor.getMonth() + 1);
+        renderMonthView();
+    });
+
+    setView('day'); // default
+}
+
+function renderMonthView() {
+    const grid = document.getElementById('month-grid');
+    const title = document.getElementById('month-view-title');
+    if (!grid || !title) return;
+    grid.innerHTML = '';
+
+    const year = monthCursor.getFullYear();
+    const month = monthCursor.getMonth();
+    title.textContent = monthCursor.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const firstDay = new Date(year, month, 1);
+    const startWeekday = firstDay.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const todayStr = localDateStr();
+    const cells = [];
+
+    // leading days from previous month
+    for (let i = startWeekday - 1; i >= 0; i--) {
+        const d = new Date(year, month - 1, daysInPrevMonth - i);
+        cells.push({ date: d, outside: true });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        cells.push({ date: new Date(year, month, d), outside: false });
+    }
+    while (cells.length % 7 !== 0 || cells.length < 42) {
+        const last = cells[cells.length - 1].date;
+        const next = new Date(last);
+        next.setDate(next.getDate() + 1);
+        cells.push({ date: next, outside: next.getMonth() !== month });
+        if (cells.length >= 42) break;
+    }
+
+    cells.forEach(({ date, outside }) => {
+        const dateStr = localDateStr(date);
+        const cell = document.createElement('div');
+        cell.className = 'month-day-cell' + (outside ? ' outside' : '');
+        if (dateStr === todayStr) cell.classList.add('today');
+        if (dateStr === monthSelectedDate) cell.classList.add('selected');
+
+        const num = document.createElement('div');
+        num.className = 'month-day-num';
+        num.textContent = date.getDate();
+        cell.appendChild(num);
+
+        const dayData = userData[dateStr];
+        const tasks = dayData ? (dayData.tasks || []) : [];
+        if (tasks.length) {
+            const dotsRow = document.createElement('div');
+            dotsRow.className = 'month-day-dots';
+            tasks.slice(0, 4).forEach(t => {
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+                if (t.color) dot.style.background = t.color;
+                dotsRow.appendChild(dot);
+            });
+            cell.appendChild(dotsRow);
+            const cnt = document.createElement('div');
+            cnt.className = 'month-day-count';
+            cnt.textContent = tasks.length;
+            cell.appendChild(cnt);
+        }
+
+        cell.addEventListener('click', () => {
+            monthSelectedDate = dateStr;
+            renderMonthView();
+            renderMonthPreview(dateStr);
+        });
+
+        grid.appendChild(cell);
+    });
+
+    if (monthSelectedDate) renderMonthPreview(monthSelectedDate);
+}
+
+function renderMonthPreview(dateStr) {
+    const aside = document.getElementById('month-quick-preview');
+    if (!aside) return;
+    aside.innerHTML = '';
+
+    // Always-visible "+" add-task button in the top corner
+    const addBtn = document.createElement('button');
+    addBtn.className = 'month-preview-add-btn';
+    addBtn.title = 'Add a task to this day';
+    addBtn.textContent = '+';
+    addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openAddTaskModalForDate(dateStr);
+    });
+    aside.appendChild(addBtn);
+
+    const h = document.createElement('h3');
+    const d = new Date(dateStr + 'T00:00:00');
+    h.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    aside.appendChild(h);
+
+    const dayData = userData[dateStr];
+    const tasks = dayData ? (dayData.tasks || []) : [];
+    if (!tasks.length) {
+        // Empty-state container — clickable shortcut to open the task modal.
+        const empty = document.createElement('div');
+        empty.className = 'month-preview-empty month-preview-empty--clickable';
+        empty.innerHTML = '<span class="mp-empty-icon">＋</span><span>Click to add a task for this day</span>';
+        empty.title = 'Add a task';
+        empty.addEventListener('click', () => openAddTaskModalForDate(dateStr));
+        aside.appendChild(empty);
+        return;
+    }
+
+    [...tasks].sort((a, b) => (a.time || '99').localeCompare(b.time || '99')).forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'month-preview-task';
+        const txt = document.createElement('span');
+        txt.textContent = t.text + (t.completed ? ' ✓' : '');
+        if (t.completed) txt.style.opacity = '0.5';
+        const time = document.createElement('span');
+        time.className = 'mp-time';
+        time.textContent = t.time ? (t.time + (t.timeEnd ? `–${t.timeEnd}` : '')) : '';
+        row.appendChild(txt);
+        row.appendChild(time);
+        aside.appendChild(row);
+    });
+}
+
+// ==========================================
+// 14b. Pinned Stickies (from Library) — draggable widgets
+// ==========================================
+function togglePinStickyToDashboard(item) {
+    if (!userData.pinnedStickies) userData.pinnedStickies = [];
+    const existingIdx = userData.pinnedStickies.findIndex(p => p.sourceId === item.id);
+    if (existingIdx >= 0) {
+        const removed = userData.pinnedStickies.splice(existingIdx, 1)[0];
+        if (removed && userData.dashboardWidgets) {
+            delete userData.dashboardWidgets['pin-sticky-' + removed.id];
+        }
+    } else {
+        userData.pinnedStickies.push({
+            id: generateId(),
+            sourceId: item.id,
+            text: item.text
+        });
+    }
+    persistWidgetPositions();
+    renderPinnedStickyWidgets();
+}
+
+function renderPinnedStickyWidgets() {
+    const grid = document.getElementById('dashboard-grid');
+    if (!grid) return;
+    // Remove old pin-sticky widgets
+    grid.querySelectorAll('.sticky-pin-widget').forEach(el => el.remove());
+
+    const list = userData.pinnedStickies || [];
+    list.forEach((p, idx) => {
+        const widgetId = 'pin-sticky-' + p.id;
+        const el = document.createElement('div');
+        el.className = 'dash-widget sticky-pin-widget';
+        el.dataset.widgetId = widgetId;
+
+        const handle = document.createElement('div');
+        handle.className = 'drag-handle';
+        handle.title = 'Drag to rearrange';
+        handle.textContent = '⠿';
+        el.appendChild(handle);
+
+        const rsz = document.createElement('button');
+        rsz.className = 'resize-handle';
+        rsz.title = 'Cycle size (S / M / L)';
+        rsz.textContent = '□';
+        el.appendChild(rsz);
+
+        const unpin = document.createElement('button');
+        unpin.className = 'sticky-pin-unpin';
+        unpin.textContent = '✖';
+        unpin.title = 'Unpin from Dashboard';
+        unpin.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const i = userData.pinnedStickies.findIndex(s => s.id === p.id);
+            if (i >= 0) userData.pinnedStickies.splice(i, 1);
+            if (userData.dashboardWidgets) delete userData.dashboardWidgets[widgetId];
+            persistWidgetPositions();
+            renderPinnedStickyWidgets();
+            // Refresh library so the pin badge updates
+            if (typeof renderNotesLibrary === 'function') renderNotesLibrary();
+        });
+        el.appendChild(unpin);
+
+        const txt = document.createElement('div');
+        txt.className = 'sticky-pin-text';
+        txt.textContent = p.text;
+        el.appendChild(txt);
+
+        // Default cascade position if none saved
+        if (!userData.dashboardWidgets[widgetId]) {
+            DEFAULT_WIDGET_POSITIONS[widgetId] = {
+                x: 925 + (idx % 2) * 225,
+                y: 250 + Math.floor(idx / 2) * 225,
+                z: 120 + idx,
+                size: 'small'
+            };
+        }
+
+        grid.appendChild(el);
+        applyWidgetPosition(el);
+        makeWidgetDraggable(el);
+        if (window.__dashResizeObserver) window.__dashResizeObserver.observe(el);
+    });
+}
+
+// ==========================================
+// 15. Utilities — debounce, escapeHtml
+// ==========================================
+function debounce(fn, ms) {
+    let t;
+    return function(...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ==========================================
 // Final initialization
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     try {
         loadData();
         renderNotesLibrary();
         initHubFeatures(); // Initialize new Hub features
+
+        // Smart Office OS init
+        initToneSelector();
+        initPinnedNotes();
+        initLaunchpadCategories();
+        initScheduleViews();
+        initScheduleClockPersistence();
+        renderPinnedStickyWidgets();   // inject pinned-from-library stickies
+        initSpatialDashboard();        // position + drag every widget
+        updateStatusBar();
+        setInterval(updateStatusBar, 30 * 1000);
     } catch (e) {
         console.error('Critical boot error:', e);
     }
