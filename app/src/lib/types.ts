@@ -46,6 +46,13 @@ export interface QuickTask {
   completed: boolean;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+}
+
 // Widget content is keyed by widget type inside layout_config.widgetData.
 // Positions live in layout_config.widgets (populated when react-grid-layout
 // lands in PR 4).
@@ -53,6 +60,7 @@ export interface WidgetDataShape {
   'pinned-notes'?: { notes: PinnedNote[] };
   'launchpad'?: { categories: LaunchpadCategory[] };
   'quick-tasks'?: { tasks: Record<string, QuickTask[]> };
+  'notes'?: { notes: Note[] };
 }
 
 export interface LayoutConfig {

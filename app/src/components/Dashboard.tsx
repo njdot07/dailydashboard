@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
+import { useTaskReminders } from '../hooks/useTaskReminders';
 import { Header } from './Header';
 import { Quote } from './widgets/Quote';
 import { Clock } from './widgets/Clock';
@@ -8,6 +9,8 @@ import { StatusBar } from './widgets/StatusBar';
 import { PinnedNotes } from './widgets/PinnedNotes';
 import { Launchpad } from './widgets/Launchpad';
 import { QuickTasks } from './widgets/QuickTasks';
+import { NotesLibrary } from './widgets/NotesLibrary';
+import { Calendar } from './widgets/Calendar';
 
 export function Dashboard() {
   const { user } = useUser();
@@ -32,6 +35,8 @@ export function Dashboard() {
     };
   }, [editMode]);
 
+  useTaskReminders();
+
   return (
     <div className="app-shell">
       <div className="app-shell__overlay" aria-hidden />
@@ -45,8 +50,10 @@ export function Dashboard() {
             <StatusBar />
             <Clock />
             <QuickTasks />
+            <Calendar />
             <PinnedNotes />
             <Launchpad />
+            <NotesLibrary />
           </div>
         )}
       </main>
