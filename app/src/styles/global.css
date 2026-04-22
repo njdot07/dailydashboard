@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
 :root {
   color-scheme: light dark;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -220,13 +222,43 @@ body {
 }
 
 /* ============================================================
-   Dashboard shell
+   Dashboard shell — dark/glass theme, scoped to .app-shell
    ============================================================ */
 
 .app-shell {
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --glass-bg: rgba(30, 30, 35, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
   min-height: 100vh;
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  background-image: url('/background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
+}
+
+.app-shell__overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-shell > *:not(.app-shell__overlay) {
+  position: relative;
+  z-index: 1;
 }
 
 .app-header {
@@ -234,24 +266,20 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-@media (prefers-color-scheme: dark) {
-  .app-header {
-    background: rgba(20, 20, 30, 0.7);
-    border-bottom-color: rgba(255, 255, 255, 0.08);
-  }
-}
-
 .app-header__brand {
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
 }
 
 .app-header__actions {
@@ -274,38 +302,23 @@ body {
 .mode-toggle,
 .signout {
   appearance: none;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--glass-border);
   background: transparent;
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem 0.85rem;
   font: inherit;
   font-size: 0.85rem;
   border-radius: 6px;
   cursor: pointer;
-  color: inherit;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mode-toggle,
-  .signout {
-    border-color: rgba(255, 255, 255, 0.15);
-  }
+  color: var(--text-primary);
 }
 
 .mode-toggle:hover,
 .signout:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-@media (prefers-color-scheme: dark) {
-  .mode-toggle:hover,
-  .signout:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .mode-toggle--edit {
   background: #6366f1;
-  color: white;
   border-color: #6366f1;
 }
 
@@ -314,7 +327,10 @@ body {
 }
 
 .app-main {
-  padding: 2rem 1.5rem;
+  padding: 1.5rem 2rem 4rem;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .app-status {
@@ -324,58 +340,236 @@ body {
 }
 
 .app-status--error {
-  color: rgb(180, 40, 40);
+  color: #ff7878;
   opacity: 1;
 }
 
 /* ============================================================
-   Placeholder (removed once real widgets land in PR 3)
+   Widget chrome — shared glass-panel look + grid layout
    ============================================================ */
 
-.placeholder-grid {
-  max-width: 720px;
-  margin: 0 auto;
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.placeholder-panel {
-  padding: 2rem;
-  border: 1px dashed rgba(0, 0, 0, 0.15);
-  border-radius: 10px;
+.widget {
+  position: relative;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* ============================================================
+   Quote header
+   ============================================================ */
+
+.header-quote {
   text-align: center;
-  background: rgba(255, 255, 255, 0.4);
+  width: 100%;
+  margin: 1.5rem 0 2.5rem;
+  transition: opacity 0.4s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .placeholder-panel {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.12);
-  }
+.header-quote.fade-out .minimal-quote,
+.header-quote.fade-out .minimal-author {
+  opacity: 0;
 }
 
-.placeholder-panel h2 {
-  margin: 0 0 0.5rem;
-  font-weight: 500;
-}
-
-.placeholder-panel p {
-  opacity: 0.7;
-  margin: 0 0 1.5rem;
-}
-
-.placeholder-stats {
-  display: inline-grid;
-  grid-template-columns: auto auto;
-  gap: 0.4rem 1.5rem;
+.minimal-quote {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-style: italic;
+  opacity: 0.9;
   margin: 0;
-  text-align: left;
+  transition: opacity 0.4s ease;
+}
+
+.minimal-author {
   font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0 0;
+  letter-spacing: 1px;
+  transition: opacity 0.4s ease;
 }
 
-.placeholder-stats dt {
-  opacity: 0.6;
+.quote-refresh-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1.25rem;
+  margin-top: 0.5rem;
+  transition: transform 0.3s, color 0.3s;
 }
 
-.placeholder-stats dd {
-  margin: 0;
+.quote-refresh-btn:hover {
+  transform: rotate(180deg);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   Status Bar widget
+   ============================================================ */
+
+.widget--status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.status-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.status-bar-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.status-bar-text {
+  font-size: 1rem;
   font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.tone-cycle-btn {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.tone-cycle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================
+   Clock widget
+   ============================================================ */
+
+.widget--clock {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 50%;
+  overflow: hidden;
+  min-height: 280px;
+}
+
+.analog-clock {
+  position: relative;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  background: var(--text-primary);
+  border-radius: 4px;
+  z-index: 5;
+  transition: transform 0.05s linear;
+}
+
+.hour-hand {
+  width: 6px;
+  height: 60px;
+  margin-left: -3px;
+  background: var(--text-secondary);
+}
+
+.minute-hand {
+  width: 4px;
+  height: 90px;
+  margin-left: -2px;
+}
+
+.second-hand {
+  width: 2px;
+  height: 100px;
+  margin-left: -1px;
+  background: #ff5252;
+}
+
+.clock-marker {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  top: 5px;
+  left: 50%;
+  margin-left: -1px;
+  transform-origin: 1px 120px;
+}
+
+.clock-marker.major {
+  width: 4px;
+  height: 15px;
+  margin-left: -2px;
+  background: rgba(255, 255, 255, 0.6);
+  transform-origin: 2px 120px;
+}
+
+.clock-number {
+  position: absolute;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.current-time-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #00e676;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.8), 0 0 20px rgba(0, 230, 118, 0.4);
+  z-index: 25;
+  pointer-events: none;
 }
