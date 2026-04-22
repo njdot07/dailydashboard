@@ -1945,3 +1945,195 @@ body[data-ui-mode='move'] .widget-shell:active {
   border-color: #fff;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
 }
+
+/* ============================================================
+   Secret Manager (inside Settings)
+   ============================================================ */
+
+.secrets-section {
+  /* Slightly separate visually from the account section below */
+}
+
+.secrets-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+}
+
+.secrets-form__intro {
+  margin: 0 0 0.25rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+}
+
+.secrets-form__intro strong {
+  color: #fff;
+}
+
+.secrets-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.secrets-form label span {
+  opacity: 0.7;
+}
+
+.secrets-form input[type='password'],
+.secrets-form input[type='text'] {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.secrets-form input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.secrets-form__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.secrets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.secrets-list__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.secrets-list__count {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.secrets-list__actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.secrets-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.secret-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.secret-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.secret-row__name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secret-row__value {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}
+
+.secret-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.secret-editor {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.secret-editor__row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 0.6rem;
+}
+
+.secret-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.secret-editor label span {
+  opacity: 0.7;
+}
+
+.secret-editor input {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.secret-editor input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.secret-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}

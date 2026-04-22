@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
+import { useSecretsStore } from '../stores/secretsStore';
 import { useTaskReminders } from '../hooks/useTaskReminders';
 import { Header } from './Header';
 import { WidgetShell } from './WidgetShell';
@@ -33,6 +34,21 @@ export function Dashboard() {
       reset();
     };
   }, [user?.id, loadDashboard, reset]);
+
+  // Secrets vault lifecycle — bind to user and auto-lock on page unload.
+  useEffect(() => {
+    if (!user) {
+      useSecretsStore.getState().reset();
+      return;
+    }
+    useSecretsStore.getState().initialize(user.id);
+    const onBeforeUnload = () => useSecretsStore.getState().lock();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      useSecretsStore.getState().reset();
+    };
+  }, [user?.id]);
 
   // Drive a single body attribute so CSS can key mode-specific visuals
   // (drag-handle visibility, scrollbar hide, content click-lock) off of it.

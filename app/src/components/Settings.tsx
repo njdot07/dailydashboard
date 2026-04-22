@@ -3,6 +3,7 @@ import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { WIDGET_REGISTRY } from './widgets/registry';
 import { Modal } from './Modal';
+import { SecretsSection } from './SecretsSection';
 
 type ToneKey = 'professional' | 'motivational' | 'minimalist' | 'friendly';
 const TONES: ToneKey[] = ['professional', 'motivational', 'minimalist', 'friendly'];
@@ -111,6 +112,9 @@ export function Settings({ open, onClose }: SettingsProps) {
             Drives the Status Bar's idle and next-task messages.
           </p>
         </section>
+
+        {/* -------- Secret Manager -------- */}
+        <SecretsSection />
 
         {/* -------- Account -------- */}
         <section className="settings-section">
