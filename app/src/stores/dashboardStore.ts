@@ -71,6 +71,27 @@ function findNextY(widgets: WidgetInstance[]): number {
   return Math.max(...widgets.map((w) => w.y + w.h));
 }
 
+// Bumps each widget's w/h up to the registry minimum so legacy layouts
+// from before registry sizing (e.g. quote saved at h=1) don't render cut off.
+function enforceMinSizes(widgets: WidgetInstance[]): {
+  widgets: WidgetInstance[];
+  changed: boolean;
+} {
+  let changed = false;
+  const result = widgets.map((w) => {
+    const entry = getWidgetEntry(w.type);
+    if (!entry?.minSize) return w;
+    const minW = entry.minSize.w;
+    const minH = entry.minSize.h;
+    if (w.w < minW || w.h < minH) {
+      changed = true;
+      return { ...w, w: Math.max(w.w, minW), h: Math.max(w.h, minH) };
+    }
+    return w;
+  });
+  return { widgets: result, changed };
+}
+
 export const useDashboardStore = create<DashboardStore>((set) => ({
   userId: null,
   layout: EMPTY_LAYOUT,
@@ -95,13 +116,15 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     if (data) {
       const cfg = data.layout_config ?? EMPTY_LAYOUT;
       const needsSeed = !cfg.widgets || cfg.widgets.length === 0;
+      const baseWidgets = needsSeed ? DEFAULT_WIDGETS : cfg.widgets;
+      const { widgets: finalWidgets, changed } = enforceMinSizes(baseWidgets);
       const hydrated: LayoutConfig = {
         widgetData: {},
         ...cfg,
-        widgets: needsSeed ? DEFAULT_WIDGETS : cfg.widgets,
+        widgets: finalWidgets,
       };
       set({ layout: hydrated, loading: false });
-      if (needsSeed) scheduleSave();
+      if (needsSeed || changed) scheduleSave();
       return;
     }
 

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   open: boolean;
@@ -19,7 +20,9 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   if (!open) return null;
 
-  return (
+  // Portal to body so the modal escapes any ancestor stacking contexts
+  // (e.g. our .app-shell > * z-index rule) and always sits on top.
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal"
@@ -41,6 +44,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         </header>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
