@@ -1366,10 +1366,228 @@ input.launchpad-category-name {
   word-break: break-word;
 }
 
-/* On narrow grids, let the wider widgets collapse to a single column */
+/* On narrow grids, let the wider widgets collapse to a single column.
+   Legacy CSS-grid rule — unused once react-grid-layout drives positions,
+   kept harmless in case we fall back. */
 @media (max-width: 900px) {
   .widget--notes,
   .widget--calendar {
     grid-column: auto;
   }
+}
+
+/* ============================================================
+   react-grid-layout integration
+   ============================================================ */
+
+.dashboard-grid-rgl {
+  margin: 0 auto;
+  max-width: 1400px;
+  min-height: 600px;
+}
+
+/* Each grid item is positioned absolutely by react-grid-layout. WidgetShell
+   fills its grid cell and lets the inner widget body take 100% height. */
+.widget-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-shell__body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The widget component itself fills the shell body. */
+.widget-shell__body > .widget {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Glass-panel padding is already handled per widget; the shell adds no
+   extra padding of its own. */
+
+/* Drag handle (top-right). Matches the legacy ⠿ affordance. */
+.widget-shell__drag-handle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: grab;
+  font-size: 1.15rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  z-index: 6;
+  user-select: none;
+}
+
+.widget-shell__drag-handle:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.widget-shell__drag-handle:active {
+  cursor: grabbing;
+}
+
+.widget-shell__remove {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: rgba(255, 120, 120, 0.15);
+  color: #ff9090;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+  z-index: 6;
+  transition: background 0.15s, color 0.15s;
+}
+
+.widget-shell__remove:hover {
+  background: rgba(255, 120, 120, 0.32);
+  color: #ffbcbc;
+}
+
+/* Placeholder shown while dragging */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border: 2px dashed rgba(99, 102, 241, 0.55);
+  border-radius: 18px;
+  opacity: 1 !important;
+  transition-duration: 100ms;
+}
+
+/* Library's default resize handle (bottom-right chevron).
+   Hide unless we're in edit mode. */
+.react-resizable-handle {
+  background-image: none !important;
+  background: none !important;
+  width: 20px;
+  height: 20px;
+  right: 2px;
+  bottom: 2px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 0;
+}
+
+body.edit-mode .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.55);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.55);
+  border-bottom-right-radius: 2px;
+}
+
+.react-grid-item.react-grid-item--resizing {
+  z-index: 3;
+  opacity: 0.85;
+}
+
+.react-grid-item.react-draggable-dragging {
+  z-index: 4;
+  cursor: grabbing;
+  opacity: 0.95;
+}
+
+/* Quote widget lives inside a grid cell now, so strip the legacy block
+   margins and center it vertically inside its tile. */
+.widget-shell__body > .header-quote {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+/* Status bar and calendar and notes dropped their grid-column overrides
+   now that react-grid-layout drives positions. Suppress any legacy span
+   rule inside the RGL grid. */
+.dashboard-grid-rgl .widget--status,
+.dashboard-grid-rgl .widget--notes,
+.dashboard-grid-rgl .widget--calendar {
+  grid-column: auto !important;
+}
+
+/* ============================================================
+   Widget palette (Add-Widget modal)
+   ============================================================ */
+
+.widget-palette {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.widget-palette-item {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.widget-palette-item:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.widget-palette-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.widget-palette-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.widget-palette-size {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-palette-added {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  font-style: italic;
 }
