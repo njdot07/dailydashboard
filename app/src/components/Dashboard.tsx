@@ -5,6 +5,9 @@ import { Header } from './Header';
 import { Quote } from './widgets/Quote';
 import { Clock } from './widgets/Clock';
 import { StatusBar } from './widgets/StatusBar';
+import { PinnedNotes } from './widgets/PinnedNotes';
+import { Launchpad } from './widgets/Launchpad';
+import { QuickTasks } from './widgets/QuickTasks';
 
 export function Dashboard() {
   const { user } = useUser();
@@ -41,6 +44,9 @@ export function Dashboard() {
           <div className="dashboard-grid">
             <StatusBar />
             <Clock />
+            <QuickTasks />
+            <PinnedNotes />
+            <Launchpad />
           </div>
         )}
       </main>

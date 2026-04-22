@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { LayoutConfig, DashboardStateRow } from '../lib/types';
+import type { LayoutConfig, DashboardStateRow, WidgetDataShape } from '../lib/types';
 
 const client = supabase as SupabaseClient;
 
 const SAVE_DEBOUNCE_MS = 1000;
-const EMPTY_LAYOUT: LayoutConfig = { widgets: [] };
+const EMPTY_LAYOUT: LayoutConfig = { widgets: [], widgetData: {} };
 
 interface DashboardStore {
   userId: string | null;
@@ -18,15 +18,35 @@ interface DashboardStore {
 
   loadDashboard: (userId: string) => Promise<void>;
   setLayout: (layout: LayoutConfig) => void;
+  setWidgetData: <K extends keyof WidgetDataShape>(
+    key: K,
+    value: WidgetDataShape[K],
+  ) => void;
   setEditMode: (mode: boolean) => void;
   toggleEditMode: () => void;
   reset: () => void;
 }
 
-// Debounce handle lives at module scope — one dashboard is loaded at a time.
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-export const useDashboardStore = create<DashboardStore>((set, get) => ({
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const { userId, layout } = useDashboardStore.getState();
+    if (!userId) return;
+    useDashboardStore.setState({ saving: true });
+    const { error } = await client
+      .from('dashboard_states')
+      .update({ layout_config: layout })
+      .eq('user_id', userId);
+    useDashboardStore.setState({
+      saving: false,
+      error: error ? error.message : null,
+    });
+  }, SAVE_DEBOUNCE_MS);
+}
+
+export const useDashboardStore = create<DashboardStore>((set) => ({
   userId: null,
   layout: EMPTY_LAYOUT,
   editMode: false,
@@ -48,11 +68,14 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     }
 
     if (data) {
-      set({ layout: data.layout_config ?? EMPTY_LAYOUT, loading: false });
+      const cfg = data.layout_config ?? EMPTY_LAYOUT;
+      set({
+        layout: { widgetData: {}, ...cfg },
+        loading: false,
+      });
       return;
     }
 
-    // First login: create the row. RLS allows insert where auth.uid() = user_id.
     const { error: insertError } = await client
       .from('dashboard_states')
       .insert({ user_id: userId, layout_config: EMPTY_LAYOUT });
@@ -67,18 +90,20 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
 
   setLayout(layout) {
     set({ layout });
-    const { userId } = get();
-    if (!userId) return;
+    scheduleSave();
+  },
 
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      set({ saving: true });
-      const { error } = await client
-        .from('dashboard_states')
-        .update({ layout_config: layout })
-        .eq('user_id', userId);
-      set({ saving: false, error: error ? error.message : null });
-    }, SAVE_DEBOUNCE_MS);
+  setWidgetData(key, value) {
+    set((state) => ({
+      layout: {
+        ...state.layout,
+        widgetData: {
+          ...(state.layout.widgetData ?? {}),
+          [key]: value,
+        },
+      },
+    }));
+    scheduleSave();
   },
 
   setEditMode(mode) {

@@ -18,8 +18,46 @@ export interface WidgetInstance {
   settings?: Record<string, unknown>;
 }
 
+export interface PinnedNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface LaunchpadLink {
+  id: string;
+  name: string;
+  url: string;
+  icon: string;
+}
+
+export interface LaunchpadCategory {
+  id: string;
+  name: string;
+  open: boolean;
+  links: LaunchpadLink[];
+}
+
+export interface QuickTask {
+  id: string;
+  text: string;
+  time: string;
+  duration: number;
+  completed: boolean;
+}
+
+// Widget content is keyed by widget type inside layout_config.widgetData.
+// Positions live in layout_config.widgets (populated when react-grid-layout
+// lands in PR 4).
+export interface WidgetDataShape {
+  'pinned-notes'?: { notes: PinnedNote[] };
+  'launchpad'?: { categories: LaunchpadCategory[] };
+  'quick-tasks'?: { tasks: Record<string, QuickTask[]> };
+}
+
 export interface LayoutConfig {
   widgets: WidgetInstance[];
+  widgetData?: WidgetDataShape;
   gridCols?: number;
 }
 
