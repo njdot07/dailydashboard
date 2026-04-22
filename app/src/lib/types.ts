@@ -44,6 +44,7 @@ export interface QuickTask {
   time: string;
   duration: number;
   completed: boolean;
+  color?: string;
 }
 
 export interface Note {

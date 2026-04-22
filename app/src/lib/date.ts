@@ -16,6 +16,17 @@ export function minutesSinceMidnight(hm: string): number {
   return (h ?? 0) * 60 + (m ?? 0);
 }
 
+// Returns a new HH:MM string that is the given hm plus minutes. Wraps within
+// a 24-hour day; callers that care about cross-midnight tasks should clamp
+// the duration themselves.
+export function addMinutes(hm: string, minutes: number): string {
+  const total = minutesSinceMidnight(hm) + minutes;
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export function dateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');

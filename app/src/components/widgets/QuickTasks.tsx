@@ -2,10 +2,25 @@ import { useState } from 'react';
 import { useWidgetData } from '../../hooks/useWidgetData';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { Modal } from '../Modal';
-import { todayKey, nowHM } from '../../lib/date';
+import { todayKey, nowHM, dateKey } from '../../lib/date';
 import type { QuickTask } from '../../lib/types';
 
 const EMPTY = { tasks: {} as Record<string, QuickTask[]> };
+
+export const TASK_COLORS = [
+  '#6366f1', // indigo (default)
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#10b981', // green
+  '#06b6d4', // cyan
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+];
+
+interface TaskDraft extends QuickTask {
+  date: string;
+}
 
 function sortByTime(tasks: QuickTask[]): QuickTask[] {
   return [...tasks].sort((a, b) => {
@@ -16,14 +31,33 @@ function sortByTime(tasks: QuickTask[]): QuickTask[] {
   });
 }
 
+function shiftDate(key: string, days: number): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y!, (m ?? 1) - 1, d);
+  date.setDate(date.getDate() + days);
+  return dateKey(date);
+}
+
+function formatDayLabel(key: string): string {
+  if (key === todayKey()) return 'Today';
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y!, (m ?? 1) - 1, d);
+  return date.toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export function QuickTasks() {
   const [data, setData] = useWidgetData('quick-tasks', EMPTY);
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
-  const [modalTask, setModalTask] = useState<QuickTask | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayKey());
+  const [modalTask, setModalTask] = useState<TaskDraft | null>(null);
+  const [originalDate, setOriginalDate] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(false);
 
-  const today = todayKey();
-  const todayTasks = sortByTime(data.tasks[today] ?? []);
+  const dayTasks = sortByTime(data.tasks[selectedDate] ?? []);
 
   const openNewModal = () => {
     setModalTask({
@@ -32,17 +66,22 @@ export function QuickTasks() {
       time: nowHM(),
       duration: 30,
       completed: false,
+      color: TASK_COLORS[0]!,
+      date: selectedDate,
     });
+    setOriginalDate(null);
     setIsNew(true);
   };
 
   const openEditModal = (task: QuickTask) => {
-    setModalTask({ ...task });
+    setModalTask({ ...task, color: task.color ?? TASK_COLORS[0]!, date: selectedDate });
+    setOriginalDate(selectedDate);
     setIsNew(false);
   };
 
   const closeModal = () => {
     setModalTask(null);
+    setOriginalDate(null);
     setIsNew(false);
   };
 
@@ -51,33 +90,67 @@ export function QuickTasks() {
     const text = modalTask.text.trim();
     if (!text) return;
 
-    const list = data.tasks[today] ?? [];
-    const next = isNew
-      ? [...list, { ...modalTask, text }]
-      : list.map((t) => (t.id === modalTask.id ? { ...modalTask, text } : t));
+    const { date, ...taskFields } = modalTask;
+    const cleanTask: QuickTask = { ...taskFields, text };
 
-    setData({ tasks: { ...data.tasks, [today]: next } });
+    const nextTasks = { ...data.tasks };
+
+    // If the date changed on an edit, remove from the old date first.
+    if (!isNew && originalDate && originalDate !== date) {
+      nextTasks[originalDate] = (nextTasks[originalDate] ?? []).filter(
+        (t) => t.id !== cleanTask.id,
+      );
+    }
+
+    const targetList = nextTasks[date] ?? [];
+    nextTasks[date] = isNew
+      ? [...targetList, cleanTask]
+      : targetList.some((t) => t.id === cleanTask.id)
+        ? targetList.map((t) => (t.id === cleanTask.id ? cleanTask : t))
+        : [...targetList, cleanTask];
+
+    setData({ tasks: nextTasks });
     closeModal();
   };
 
   const toggleComplete = (id: string) => {
-    const list = data.tasks[today] ?? [];
+    const list = data.tasks[selectedDate] ?? [];
     const next = list.map((t) =>
       t.id === id ? { ...t, completed: !t.completed } : t,
     );
-    setData({ tasks: { ...data.tasks, [today]: next } });
+    setData({ tasks: { ...data.tasks, [selectedDate]: next } });
   };
 
   const removeTask = (id: string) => {
-    const list = data.tasks[today] ?? [];
+    const list = data.tasks[selectedDate] ?? [];
     const next = list.filter((t) => t.id !== id);
-    setData({ tasks: { ...data.tasks, [today]: next } });
+    setData({ tasks: { ...data.tasks, [selectedDate]: next } });
   };
 
   return (
     <div className="widget widget--tasks glass-panel">
       <div className="widget-header">
-        <h2 className="widget-title">Today</h2>
+        <div className="day-nav">
+          <button
+            type="button"
+            className="day-nav-btn"
+            onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+            aria-label="Previous day"
+          >
+            ‹
+          </button>
+          <span className="day-nav-label" title={selectedDate}>
+            {formatDayLabel(selectedDate)}
+          </span>
+          <button
+            type="button"
+            className="day-nav-btn"
+            onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+            aria-label="Next day"
+          >
+            ›
+          </button>
+        </div>
         <button
           type="button"
           className="primary-btn small-btn"
@@ -87,11 +160,21 @@ export function QuickTasks() {
         </button>
       </div>
 
-      {todayTasks.length === 0 ? (
-        <p className="widget-empty">No tasks for today.</p>
+      {selectedDate !== todayKey() && (
+        <button
+          type="button"
+          className="day-nav-today"
+          onClick={() => setSelectedDate(todayKey())}
+        >
+          Jump to today
+        </button>
+      )}
+
+      {dayTasks.length === 0 ? (
+        <p className="widget-empty">No tasks for this day.</p>
       ) : (
         <ul className="task-list">
-          {todayTasks.map((task) => (
+          {dayTasks.map((task) => (
             <li
               key={task.id}
               className={`task-item${task.completed ? ' completed' : ''}`}
@@ -101,6 +184,11 @@ export function QuickTasks() {
                 checked={task.completed}
                 onChange={() => toggleComplete(task.id)}
                 aria-label={`Mark ${task.text} complete`}
+              />
+              <span
+                className="task-color-dot"
+                style={{ background: task.color ?? TASK_COLORS[0] }}
+                aria-hidden
               />
               <span className="task-text">{task.text}</span>
               {task.time && <span className="task-time-badge">{task.time}</span>}
@@ -157,9 +245,20 @@ export function QuickTasks() {
               />
             </label>
 
+            <label>
+              <span>Date</span>
+              <input
+                type="date"
+                value={modalTask.date}
+                onChange={(e) =>
+                  setModalTask({ ...modalTask, date: e.target.value || todayKey() })
+                }
+              />
+            </label>
+
             <div className="form-row">
               <label>
-                <span>Time</span>
+                <span>Start</span>
                 <input
                   type="time"
                   value={modalTask.time}
@@ -169,7 +268,7 @@ export function QuickTasks() {
                 />
               </label>
               <label>
-                <span>Duration (min)</span>
+                <span>Duration (min) — 0 for none</span>
                 <input
                   type="number"
                   min={0}
@@ -178,11 +277,29 @@ export function QuickTasks() {
                   onChange={(e) =>
                     setModalTask({
                       ...modalTask,
-                      duration: Number(e.target.value) || 0,
+                      duration: Math.max(0, Number(e.target.value) || 0),
                     })
                   }
                 />
               </label>
+            </div>
+
+            <div className="task-color-picker">
+              <span className="task-color-picker__label">Color</span>
+              <div className="task-color-picker__swatches">
+                {TASK_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`task-color-swatch${
+                      modalTask.color === c ? ' task-color-swatch--active' : ''
+                    }`}
+                    style={{ background: c }}
+                    onClick={() => setModalTask({ ...modalTask, color: c })}
+                    aria-label={`Use ${c}`}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="form-actions">

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { useDashboardStore } from '../../stores/dashboardStore';
+import { addMinutes, todayKey } from '../../lib/date';
+import { TASK_COLORS } from './QuickTasks';
+import type { QuickTask } from '../../lib/types';
 
-// Markers only depend on hour index, not time — compute once.
 interface MarkerData {
   hour: number;
   isMajor: boolean;
@@ -27,6 +30,60 @@ function buildMarkers(): MarkerData[] {
   return markers;
 }
 
+// Convert HH:MM to degrees on a 12-hour dial (0 = 12 o'clock, increases clockwise)
+function timeToDeg(hm: string): number {
+  const [h, m] = hm.split(':').map(Number);
+  return (((h ?? 0) % 12) + (m ?? 0) / 60) * 30;
+}
+
+function polar(angleDeg: number, r: number): [number, number] {
+  const rad = (angleDeg - 90) * (Math.PI / 180);
+  return [r * Math.cos(rad), r * Math.sin(rad)];
+}
+
+// SVG arc path in unit-circle coords (-1 to 1). radius is 0..1.
+function arcPath(startDeg: number, endDeg: number, radius: number): string {
+  let span = (endDeg - startDeg + 360) % 360;
+  if (span === 0) span = 360;
+  const largeArc = span > 180 ? 1 : 0;
+  const [sx, sy] = polar(startDeg, radius);
+  const [ex, ey] = polar(endDeg, radius);
+  return `M ${sx} ${sy} A ${radius} ${radius} 0 ${largeArc} 1 ${ex} ${ey}`;
+}
+
+interface TaskVisual {
+  id: string;
+  color: string;
+  completed: boolean;
+  startDeg: number;
+  startX: number;
+  startY: number;
+  arcPath: string | null;
+}
+
+function buildTaskVisuals(tasks: QuickTask[], radius: number): TaskVisual[] {
+  return tasks
+    .filter((t) => t.time)
+    .map((t) => {
+      const color = t.color ?? TASK_COLORS[0]!;
+      const startDeg = timeToDeg(t.time);
+      const [startX, startY] = polar(startDeg, radius);
+      const path =
+        t.duration > 0
+          ? arcPath(startDeg, timeToDeg(addMinutes(t.time, t.duration)), radius)
+          : null;
+      return {
+        id: t.id,
+        color,
+        completed: t.completed,
+        startDeg,
+        startX,
+        startY,
+        arcPath: path,
+      };
+    });
+}
+
 export function Clock() {
   const hourRef = useRef<HTMLDivElement>(null);
   const minRef = useRef<HTMLDivElement>(null);
@@ -35,8 +92,16 @@ export function Clock() {
 
   const markers = useMemo(buildMarkers, []);
 
-  // Drive hand rotations via refs so the 60fps animation doesn't re-render
-  // the 12 static markers every tick.
+  // Read today's tasks reactively — if the user adds/edits tasks, arcs update.
+  const tasksData = useDashboardStore(
+    (s) => s.layout.widgetData?.['quick-tasks'],
+  );
+  const todayTasks = tasksData?.tasks[todayKey()] ?? [];
+  const taskVisuals = useMemo(
+    () => buildTaskVisuals(todayTasks, 0.86),
+    [todayTasks],
+  );
+
   useEffect(() => {
     let rafId = 0;
     const tick = () => {
@@ -69,6 +134,40 @@ export function Clock() {
   return (
     <div className="widget widget--clock glass-panel">
       <div className="analog-clock">
+        {/* Task arcs/dots behind the hour markers and hands */}
+        {taskVisuals.length > 0 && (
+          <svg
+            className="clock-task-svg"
+            viewBox="-1 -1 2 2"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden
+          >
+            {taskVisuals.map((tv) =>
+              tv.arcPath ? (
+                <path
+                  key={tv.id}
+                  d={tv.arcPath}
+                  fill="none"
+                  stroke={tv.color}
+                  strokeWidth={0.09}
+                  strokeLinecap="round"
+                  opacity={tv.completed ? 0.3 : 0.85}
+                />
+              ) : null,
+            )}
+            {taskVisuals.map((tv) => (
+              <circle
+                key={`dot-${tv.id}`}
+                cx={tv.startX}
+                cy={tv.startY}
+                r={0.045}
+                fill={tv.color}
+                opacity={tv.completed ? 0.4 : 1}
+              />
+            ))}
+          </svg>
+        )}
+
         {markers.map((m) => (
           <div
             key={`marker-${m.hour}`}
