@@ -6,15 +6,11 @@ interface WidgetShellProps extends HTMLAttributes<HTMLDivElement> {
   widgetType: string;
   title?: string;
   Component: ComponentType;
-  // react-grid-layout injects these via cloneElement.
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;
 }
 
-// Forward the ref so react-grid-layout can measure/position the item.
-// Props coming from RGL (className, style, children = resize handle) are
-// spread onto the outer div alongside our own classes.
 export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
   function WidgetShell(
     {
@@ -29,8 +25,11 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
     },
     ref,
   ) {
-    const editMode = useDashboardStore((s) => s.editMode);
+    const uiMode = useDashboardStore((s) => s.uiMode);
     const removeWidget = useDashboardStore((s) => s.removeWidget);
+
+    const showDragHandle = uiMode === 'move';
+    const showRemoveButton = uiMode === 'edit';
 
     return (
       <div
@@ -40,25 +39,25 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
         style={style}
         data-widget-type={widgetType}
       >
-        {editMode && (
-          <>
-            <button
-              type="button"
-              className="widget-shell__remove"
-              onClick={() => removeWidget(widgetId)}
-              aria-label={title ? `Remove ${title}` : 'Remove widget'}
-              title="Remove"
-            >
-              ×
-            </button>
-            <span
-              className="widget-shell__drag-handle"
-              title="Drag to move"
-              aria-hidden
-            >
-              ⠿
-            </span>
-          </>
+        {showRemoveButton && (
+          <button
+            type="button"
+            className="widget-shell__remove"
+            onClick={() => removeWidget(widgetId)}
+            aria-label={title ? `Remove ${title}` : 'Remove widget'}
+            title="Remove"
+          >
+            ×
+          </button>
+        )}
+        {showDragHandle && (
+          <span
+            className="widget-shell__drag-handle"
+            title="Drag to move"
+            aria-hidden
+          >
+            ⠿
+          </span>
         )}
         <div className="widget-shell__body">
           <Component />

@@ -27,7 +27,7 @@ function formatUpdated(iso: string): string {
 
 export function NotesLibrary() {
   const [data, setData] = useWidgetData('notes', EMPTY);
-  const editMode = useDashboardStore((s) => s.editMode);
+  const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const [editing, setEditing] = useState<Note | null>(null);
   const [isNew, setIsNew] = useState(false);
 

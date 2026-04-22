@@ -15,6 +15,9 @@ const client = supabase as SupabaseClient;
 const SAVE_DEBOUNCE_MS = 1000;
 const EMPTY_LAYOUT: LayoutConfig = { widgets: [], widgetData: {} };
 
+export type UIMode = 'view' | 'move' | 'resize' | 'edit';
+export const UI_MODES: UIMode[] = ['view', 'move', 'resize', 'edit'];
+
 interface GridPosition {
   i: string;
   x: number;
@@ -26,7 +29,7 @@ interface GridPosition {
 interface DashboardStore {
   userId: string | null;
   layout: LayoutConfig;
-  editMode: boolean;
+  uiMode: UIMode;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -40,8 +43,7 @@ interface DashboardStore {
   updatePositions: (positions: GridPosition[]) => void;
   addWidget: (type: string) => void;
   removeWidget: (i: string) => void;
-  setEditMode: (mode: boolean) => void;
-  toggleEditMode: () => void;
+  setUIMode: (mode: UIMode) => void;
   reset: () => void;
 }
 
@@ -64,7 +66,6 @@ function scheduleSave() {
   }, SAVE_DEBOUNCE_MS);
 }
 
-// Picks a y-coordinate just below the tallest widget currently on the grid.
 function findNextY(widgets: WidgetInstance[]): number {
   if (widgets.length === 0) return 0;
   return Math.max(...widgets.map((w) => w.y + w.h));
@@ -73,7 +74,7 @@ function findNextY(widgets: WidgetInstance[]): number {
 export const useDashboardStore = create<DashboardStore>((set) => ({
   userId: null,
   layout: EMPTY_LAYOUT,
-  editMode: false,
+  uiMode: 'view',
   loading: false,
   saving: false,
   error: null,
@@ -91,8 +92,6 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       return;
     }
 
-    // Row present: hydrate, seed default widgets if the array is empty
-    // (this migrates legacy rows saved before PR 4).
     if (data) {
       const cfg = data.layout_config ?? EMPTY_LAYOUT;
       const needsSeed = !cfg.widgets || cfg.widgets.length === 0;
@@ -106,7 +105,6 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       return;
     }
 
-    // First login: insert a row with the seeded default layout.
     const seeded: LayoutConfig = { widgets: DEFAULT_WIDGETS, widgetData: {} };
     const { error: insertError } = await client
       .from('dashboard_states')
@@ -185,12 +183,8 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     scheduleSave();
   },
 
-  setEditMode(mode) {
-    set({ editMode: mode });
-  },
-
-  toggleEditMode() {
-    set((state) => ({ editMode: !state.editMode }));
+  setUIMode(mode) {
+    set({ uiMode: mode });
   },
 
   reset() {
@@ -201,10 +195,13 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     set({
       userId: null,
       layout: EMPTY_LAYOUT,
-      editMode: false,
+      uiMode: 'view',
       loading: false,
       saving: false,
       error: null,
     });
   },
 }));
+
+// Convenience selectors
+export const selectIsEditMode = (s: DashboardStore) => s.uiMode === 'edit';

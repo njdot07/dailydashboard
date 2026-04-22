@@ -18,7 +18,7 @@ function sortByTime(tasks: QuickTask[]): QuickTask[] {
 
 export function QuickTasks() {
   const [data, setData] = useWidgetData('quick-tasks', EMPTY);
-  const editMode = useDashboardStore((s) => s.editMode);
+  const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const [modalTask, setModalTask] = useState<QuickTask | null>(null);
   const [isNew, setIsNew] = useState(false);
 

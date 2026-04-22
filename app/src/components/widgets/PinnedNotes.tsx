@@ -7,7 +7,7 @@ const EMPTY = { notes: [] as PinnedNote[] };
 
 export function PinnedNotes() {
   const [data, setData] = useWidgetData('pinned-notes', EMPTY);
-  const editMode = useDashboardStore((s) => s.editMode);
+  const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const [draft, setDraft] = useState('');
 
   const addNote = () => {

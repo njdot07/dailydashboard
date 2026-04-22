@@ -9,6 +9,17 @@
   box-sizing: border-box;
 }
 
+/* Hide scrollbar chrome globally; scroll wheel + touch still work. */
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -299,31 +310,49 @@ body {
   font-style: italic;
 }
 
-.mode-toggle,
-.signout {
-  appearance: none;
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* Segmented mode control: View / Move / Resize / Edit */
+.mode-group {
+  display: inline-flex;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.mode-btn {
+  appearance: none;
+  border: 0;
   background: transparent;
-  padding: 0.4rem 0.85rem;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.85rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   border-radius: 6px;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.mode-toggle:hover,
-.signout:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.mode-toggle--edit {
+.mode-btn--active {
   background: #6366f1;
-  border-color: #6366f1;
+  color: #fff;
 }
 
-.mode-toggle--edit:hover {
+.mode-btn--active:hover {
   background: #4f46e5;
+  color: #fff;
 }
 
 .app-main {
@@ -1491,7 +1520,7 @@ input.launchpad-category-name {
   padding: 0;
 }
 
-body.edit-mode .react-resizable-handle {
+body[data-ui-mode='resize'] .react-resizable-handle {
   opacity: 1;
 }
 
@@ -1590,4 +1619,196 @@ body.edit-mode .react-resizable-handle {
   font-size: 0.7rem;
   opacity: 0.6;
   font-style: italic;
+}
+
+/* ============================================================
+   Mode-specific behaviour
+   ============================================================ */
+
+/* In move/resize modes, widget content shouldn't receive pointer events —
+   prevents accidentally toggling checkboxes or typing while positioning.
+   Drag handle and resize corners stay interactive because they're siblings
+   of .widget-shell__body, not children. */
+body[data-ui-mode='move'] .widget-shell__body,
+body[data-ui-mode='resize'] .widget-shell__body {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Subtle visual cue that the mode affects content */
+body[data-ui-mode='move'] .widget-shell,
+body[data-ui-mode='resize'] .widget-shell {
+  transition: opacity 0.15s;
+}
+
+body[data-ui-mode='move'] .widget-shell__body,
+body[data-ui-mode='resize'] .widget-shell__body {
+  opacity: 0.75;
+}
+
+/* Slight dashed outline around every widget in move/resize so the
+   targets are obvious. */
+body[data-ui-mode='move'] .widget-shell::before,
+body[data-ui-mode='resize'] .widget-shell::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Cursors */
+body[data-ui-mode='move'] .widget-shell {
+  cursor: grab;
+}
+
+body[data-ui-mode='move'] .widget-shell:active {
+  cursor: grabbing;
+}
+
+/* ============================================================
+   Settings modal
+   ============================================================ */
+
+/* Settings gets a wider modal than the task form. */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-section {
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 1.25rem;
+}
+
+.settings-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  opacity: 0.9;
+}
+
+.settings-section-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  opacity: 0.55;
+  line-height: 1.4;
+}
+
+.settings-widget-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-toggle-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-toggle-row__label {
+  font-size: 0.9rem;
+}
+
+.settings-toggle-row__meta {
+  font-size: 0.72rem;
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-toggle-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.settings-field > span:first-child {
+  opacity: 0.65;
+  font-size: 0.8rem;
+}
+
+.settings-field select,
+.settings-field input[type='text'] {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+
+.settings-field select {
+  /* Native chevron on dark background: add a subtle custom one */
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.5) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+.settings-field select:focus,
+.settings-field input[type='text']:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.settings-inline-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.settings-inline-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-readonly {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  padding: 0.55rem 0;
+}
+
+/* Widen the modal specifically for settings */
+.modal-body .settings {
+  min-width: 0;
+}
+
+.modal:has(.settings) {
+  width: min(560px, 100%);
 }

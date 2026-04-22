@@ -6,7 +6,7 @@ const EMPTY = { categories: [] as LaunchpadCategory[] };
 
 export function Launchpad() {
   const [data, setData] = useWidgetData('launchpad', EMPTY);
-  const editMode = useDashboardStore((s) => s.editMode);
+  const editMode = useDashboardStore((s) => s.uiMode === 'edit');
 
   const update = (categories: LaunchpadCategory[]) => setData({ categories });
 

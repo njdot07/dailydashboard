@@ -52,7 +52,7 @@ function findNextUpcoming(tasks: QuickTask[]): QuickTask | null {
 
 export function StatusBar() {
   const { profile, updateProfile } = useUser();
-  const editMode = useDashboardStore((s) => s.editMode);
+  const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const tasksData = useDashboardStore(
     (s) => s.layout.widgetData?.['quick-tasks'],
   );

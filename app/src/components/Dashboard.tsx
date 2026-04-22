@@ -5,14 +5,14 @@ import { useDashboardStore } from '../stores/dashboardStore';
 import { useTaskReminders } from '../hooks/useTaskReminders';
 import { Header } from './Header';
 import { WidgetShell } from './WidgetShell';
-import { WidgetPalette } from './WidgetPalette';
+import { Settings } from './Settings';
 import { getWidgetEntry } from './widgets/registry';
 
 const ResponsiveGridLayout = WidthProvider(GridLayout);
 
 const GRID_COLS = 12;
-const GRID_ROW_HEIGHT = 60;
-const GRID_MARGIN: [number, number] = [16, 16];
+const GRID_ROW_HEIGHT = 48;
+const GRID_MARGIN: [number, number] = [14, 14];
 
 export function Dashboard() {
   const { user } = useUser();
@@ -20,11 +20,11 @@ export function Dashboard() {
   const reset = useDashboardStore((s) => s.reset);
   const loading = useDashboardStore((s) => s.loading);
   const error = useDashboardStore((s) => s.error);
-  const editMode = useDashboardStore((s) => s.editMode);
+  const uiMode = useDashboardStore((s) => s.uiMode);
   const widgets = useDashboardStore((s) => s.layout.widgets);
   const updatePositions = useDashboardStore((s) => s.updatePositions);
 
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -34,14 +34,19 @@ export function Dashboard() {
     };
   }, [user?.id, loadDashboard, reset]);
 
+  // Drive a single body attribute so CSS can key mode-specific visuals
+  // (drag-handle visibility, scrollbar hide, content click-lock) off of it.
   useEffect(() => {
-    document.body.classList.toggle('edit-mode', editMode);
+    document.body.setAttribute('data-ui-mode', uiMode);
     return () => {
-      document.body.classList.remove('edit-mode');
+      document.body.removeAttribute('data-ui-mode');
     };
-  }, [editMode]);
+  }, [uiMode]);
 
   useTaskReminders();
+
+  const isDraggable = uiMode === 'move';
+  const isResizable = uiMode === 'resize';
 
   const rglLayout: Layout[] = useMemo(
     () =>
@@ -55,13 +60,14 @@ export function Dashboard() {
           h: w.h,
           minW: entry?.minSize?.w,
           minH: entry?.minSize?.h,
-          static: !editMode,
+          static: !isDraggable && !isResizable,
         };
       }),
-    [widgets, editMode],
+    [widgets, isDraggable, isResizable],
   );
 
   const handleLayoutChange = (next: Layout[]) => {
+    if (!isDraggable && !isResizable) return;
     updatePositions(
       next.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })),
     );
@@ -70,7 +76,7 @@ export function Dashboard() {
   return (
     <div className="app-shell">
       <div className="app-shell__overlay" aria-hidden />
-      <Header onOpenPalette={() => setPaletteOpen(true)} />
+      <Header onOpenSettings={() => setSettingsOpen(true)} />
       <main className="app-main">
         {loading && <p className="app-status">Loading your dashboard…</p>}
         {error && <p className="app-status app-status--error">{error}</p>}
@@ -81,8 +87,8 @@ export function Dashboard() {
             cols={GRID_COLS}
             rowHeight={GRID_ROW_HEIGHT}
             margin={GRID_MARGIN}
-            isDraggable={editMode}
-            isResizable={editMode}
+            isDraggable={isDraggable}
+            isResizable={isResizable}
             draggableHandle=".widget-shell__drag-handle"
             compactType="vertical"
             preventCollision={false}
@@ -104,7 +110,7 @@ export function Dashboard() {
           </ResponsiveGridLayout>
         )}
       </main>
-      <WidgetPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
