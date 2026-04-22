@@ -52,7 +52,8 @@ function formatDayLabel(key: string): string {
 export function QuickTasks() {
   const [data, setData] = useWidgetData('quick-tasks', EMPTY);
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
-  const [selectedDate, setSelectedDate] = useState<string>(() => todayKey());
+  const selectedDate = useDashboardStore((s) => s.selectedDate);
+  const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);
   const [modalTask, setModalTask] = useState<TaskDraft | null>(null);
   const [originalDate, setOriginalDate] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(false);

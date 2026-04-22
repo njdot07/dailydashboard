@@ -501,15 +501,17 @@ body {
    Clock widget
    ============================================================ */
 
+/* The clock widget is a normal rectangular glass panel — the only circular
+   thing is the analog-clock element itself, centered inside. Earlier versions
+   had aspect-ratio:1/1 + border-radius:50% on the widget which stretched into
+   an oval whenever the grid cell wasn't square. */
 .widget--clock {
-  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  border-radius: 50%;
+  padding: 0.75rem;
   overflow: hidden;
-  min-height: 280px;
+  min-height: 270px;
 }
 
 .analog-clock {

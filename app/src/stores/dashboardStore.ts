@@ -9,6 +9,7 @@ import type {
 } from '../lib/types';
 import { DEFAULT_WIDGETS } from '../lib/defaultLayout';
 import { getWidgetEntry } from '../components/widgets/registry';
+import { todayKey } from '../lib/date';
 
 const client = supabase as SupabaseClient;
 
@@ -30,6 +31,9 @@ interface DashboardStore {
   userId: string | null;
   layout: LayoutConfig;
   uiMode: UIMode;
+  // The date currently focused across widgets (QuickTasks list, Calendar
+  // selection). In-memory only — always defaults to today on reload.
+  selectedDate: string;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -44,6 +48,7 @@ interface DashboardStore {
   addWidget: (type: string) => void;
   removeWidget: (i: string) => void;
   setUIMode: (mode: UIMode) => void;
+  setSelectedDate: (date: string) => void;
   reset: () => void;
 }
 
@@ -96,6 +101,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   userId: null,
   layout: EMPTY_LAYOUT,
   uiMode: 'view',
+  selectedDate: todayKey(),
   loading: false,
   saving: false,
   error: null,
@@ -210,6 +216,10 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     set({ uiMode: mode });
   },
 
+  setSelectedDate(date) {
+    set({ selectedDate: date });
+  },
+
   reset() {
     if (saveTimer) {
       clearTimeout(saveTimer);
@@ -219,6 +229,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       userId: null,
       layout: EMPTY_LAYOUT,
       uiMode: 'view',
+      selectedDate: todayKey(),
       loading: false,
       saving: false,
       error: null,

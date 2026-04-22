@@ -42,8 +42,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     type: 'clock',
     title: 'Clock',
     Component: Clock,
-    defaultSize: { w: 3, h: 4 },
-    minSize: { w: 3, h: 4 },
+    defaultSize: { w: 3, h: 5 },
+    minSize: { w: 3, h: 5 },
     singleton: true,
   },
   'quick-tasks': {

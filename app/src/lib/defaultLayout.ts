@@ -6,10 +6,10 @@ import type { WidgetInstance } from './types';
 export const DEFAULT_WIDGETS: WidgetInstance[] = [
   { i: 'quote-1', type: 'quote', x: 0, y: 0, w: 12, h: 2 },
   { i: 'status-bar-1', type: 'status-bar', x: 0, y: 2, w: 12, h: 2 },
-  { i: 'clock-1', type: 'clock', x: 0, y: 4, w: 3, h: 4 },
-  { i: 'quick-tasks-1', type: 'quick-tasks', x: 3, y: 4, w: 3, h: 4 },
+  { i: 'clock-1', type: 'clock', x: 0, y: 4, w: 3, h: 5 },
+  { i: 'quick-tasks-1', type: 'quick-tasks', x: 3, y: 4, w: 3, h: 5 },
   { i: 'calendar-1', type: 'calendar', x: 6, y: 4, w: 6, h: 6 },
-  { i: 'pinned-notes-1', type: 'pinned-notes', x: 0, y: 8, w: 3, h: 4 },
-  { i: 'launchpad-1', type: 'launchpad', x: 3, y: 8, w: 3, h: 4 },
+  { i: 'pinned-notes-1', type: 'pinned-notes', x: 0, y: 9, w: 3, h: 4 },
+  { i: 'launchpad-1', type: 'launchpad', x: 3, y: 9, w: 3, h: 4 },
   { i: 'notes-1', type: 'notes', x: 6, y: 10, w: 6, h: 4 },
 ];

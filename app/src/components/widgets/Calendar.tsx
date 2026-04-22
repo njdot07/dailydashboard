@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import {
   buildMonthCells,
@@ -16,26 +16,40 @@ export function Calendar() {
   const tasksData = useDashboardStore(
     (s) => s.layout.widgetData?.['quick-tasks'],
   );
+  const selectedDate = useDashboardStore((s) => s.selectedDate);
+  const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);
+
   const [cursor, setCursor] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d;
+    const [y, m] = selectedDate.split('-').map(Number);
+    return new Date(y!, (m ?? 1) - 1, 1);
   });
-  const [selected, setSelected] = useState<string>(() => todayKey());
+
+  // Keep cursor month in sync with selectedDate so that external changes
+  // (QuickTasks day nav, other future integrations) bring the grid along.
+  useEffect(() => {
+    const [y, mo] = selectedDate.split('-').map(Number);
+    if (
+      y !== cursor.getFullYear() ||
+      (mo ?? 1) - 1 !== cursor.getMonth()
+    ) {
+      setCursor(new Date(y!, (mo ?? 1) - 1, 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
   const cells = useMemo(() => buildMonthCells(cursor), [cursor]);
 
   const tasksByDate = tasksData?.tasks ?? {};
 
   const selectedTasks: QuickTask[] = useMemo(() => {
-    const list = tasksByDate[selected] ?? [];
+    const list = tasksByDate[selectedDate] ?? [];
     return [...list].sort((a, b) => {
       if (!a.time && !b.time) return 0;
       if (!a.time) return 1;
       if (!b.time) return -1;
       return a.time.localeCompare(b.time);
     });
-  }, [tasksByDate, selected]);
+  }, [tasksByDate, selectedDate]);
 
   return (
     <div className="widget widget--calendar glass-panel">
@@ -77,7 +91,7 @@ export function Calendar() {
             'cal-cell',
             cell.inMonth ? '' : 'cal-cell--other',
             cell.isToday ? 'cal-cell--today' : '',
-            cell.key === selected ? 'cal-cell--selected' : '',
+            cell.key === selectedDate ? 'cal-cell--selected' : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -86,7 +100,7 @@ export function Calendar() {
               key={cell.key}
               type="button"
               className={cls}
-              onClick={() => setSelected(cell.key)}
+              onClick={() => setSelectedDate(cell.key)}
             >
               <span className="cal-cell-day">{cell.day}</span>
               {count > 0 && <span className="cal-cell-count">{count}</span>}
@@ -97,8 +111,8 @@ export function Calendar() {
 
       <div className="cal-preview">
         <h3 className="cal-preview-title">
-          {selected === dateKey(new Date()) ? 'Today · ' : ''}
-          {formatLongDate(selected)}
+          {selectedDate === dateKey(new Date()) ? 'Today · ' : ''}
+          {formatLongDate(selectedDate)}
         </h3>
         {selectedTasks.length === 0 ? (
           <p className="widget-empty">No tasks.</p>
@@ -116,6 +130,15 @@ export function Calendar() {
               </li>
             ))}
           </ul>
+        )}
+        {selectedDate !== todayKey() && (
+          <button
+            type="button"
+            className="day-nav-today"
+            onClick={() => setSelectedDate(todayKey())}
+          >
+            Jump to today
+          </button>
         )}
       </div>
     </div>
