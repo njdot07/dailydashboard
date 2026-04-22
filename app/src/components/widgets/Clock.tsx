@@ -97,8 +97,11 @@ export function Clock() {
     (s) => s.layout.widgetData?.['quick-tasks'],
   );
   const todayTasks = tasksData?.tasks[todayKey()] ?? [];
+  // Arcs drawn at r=1.03 straddle the clock border — half sits on the circle
+  // edge, half extends into the surrounding space. Widget container has room
+  // (~15px) before its own border clips, so stroke=0.08 stays fully visible.
   const taskVisuals = useMemo(
-    () => buildTaskVisuals(todayTasks, 0.86),
+    () => buildTaskVisuals(todayTasks, 1.03),
     [todayTasks],
   );
 
