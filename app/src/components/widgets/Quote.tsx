@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 
 const QUOTES: { text: string; author: string }[] = [
   { text: 'Logic will get you from A to B. Imagination will take you everywhere.', author: 'Albert Einstein' },
@@ -24,16 +25,31 @@ function pickRandom() {
 }
 
 export function Quote() {
+  const { settings } = useWidgetSettings();
+  const autoRefreshSeconds = settings.autoRefreshSeconds as number;
+
   const [quote, setQuote] = useState(pickRandom);
   const [fading, setFading] = useState(false);
+  // Guard against double-refresh if both the user clicks ↻ and the timer
+  // fires at the same moment.
+  const fadingRef = useRef(false);
 
   const refresh = useCallback(() => {
+    if (fadingRef.current) return;
+    fadingRef.current = true;
     setFading(true);
     setTimeout(() => {
       setQuote(pickRandom());
       setFading(false);
+      fadingRef.current = false;
     }, 400);
   }, []);
+
+  useEffect(() => {
+    if (!autoRefreshSeconds || autoRefreshSeconds <= 0) return;
+    const id = window.setInterval(refresh, autoRefreshSeconds * 1000);
+    return () => clearInterval(id);
+  }, [autoRefreshSeconds, refresh]);
 
   return (
     <header className={`header-quote${fading ? ' fade-out' : ''}`}>

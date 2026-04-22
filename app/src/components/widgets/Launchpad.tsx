@@ -1,4 +1,5 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import type { LaunchpadCategory, LaunchpadLink } from '../../lib/types';
 
@@ -7,6 +8,8 @@ const EMPTY = { categories: [] as LaunchpadCategory[] };
 export function Launchpad() {
   const [data, setData] = useWidgetData('launchpad', EMPTY);
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
+  const { settings } = useWidgetSettings();
+  const openInNewTab = settings.openInNewTab as boolean;
 
   const update = (categories: LaunchpadCategory[]) => setData({ categories });
 
@@ -159,8 +162,8 @@ export function Launchpad() {
                     <a
                       key={link.id}
                       href={link.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
+                      target={openInNewTab ? '_blank' : undefined}
+                      rel={openInNewTab ? 'noreferrer noopener' : undefined}
                       className="launchpad-link"
                     >
                       <span className="lp-icon">{link.icon}</span>

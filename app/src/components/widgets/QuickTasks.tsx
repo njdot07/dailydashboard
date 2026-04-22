@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { Modal } from '../Modal';
 import { todayKey, nowHM, dateKey } from '../../lib/date';
@@ -54,18 +55,25 @@ export function QuickTasks() {
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const selectedDate = useDashboardStore((s) => s.selectedDate);
   const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);
+  const { settings } = useWidgetSettings();
+  const defaultDuration = settings.defaultDuration as number;
+  const hideCompleted = settings.hideCompleted as boolean;
   const [modalTask, setModalTask] = useState<TaskDraft | null>(null);
   const [originalDate, setOriginalDate] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(false);
 
-  const dayTasks = sortByTime(data.tasks[selectedDate] ?? []);
+  const allForDay = data.tasks[selectedDate] ?? [];
+  const visibleForDay = hideCompleted
+    ? allForDay.filter((t) => !t.completed)
+    : allForDay;
+  const dayTasks = sortByTime(visibleForDay);
 
   const openNewModal = () => {
     setModalTask({
       id: crypto.randomUUID(),
       text: '',
       time: nowHM(),
-      duration: 30,
+      duration: defaultDuration,
       completed: false,
       color: TASK_COLORS[0]!,
       date: selectedDate,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDashboardStore } from '../../stores/dashboardStore';
+import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 import {
   buildMonthCells,
   dateKey,
@@ -10,7 +11,14 @@ import {
 } from '../../lib/date';
 import type { QuickTask } from '../../lib/types';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function orderedWeekdays(weekStart: number): string[] {
+  return [
+    ...WEEKDAY_LABELS.slice(weekStart),
+    ...WEEKDAY_LABELS.slice(0, weekStart),
+  ];
+}
 
 export function Calendar() {
   const tasksData = useDashboardStore(
@@ -18,6 +26,9 @@ export function Calendar() {
   );
   const selectedDate = useDashboardStore((s) => s.selectedDate);
   const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);
+  const { settings } = useWidgetSettings();
+  const weekStart = settings.weekStartsOn === 'mon' ? 1 : 0;
+  const showTaskBadges = settings.showTaskBadges as boolean;
 
   const [cursor, setCursor] = useState(() => {
     const [y, m] = selectedDate.split('-').map(Number);
@@ -37,7 +48,11 @@ export function Calendar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  const cells = useMemo(() => buildMonthCells(cursor), [cursor]);
+  const cells = useMemo(
+    () => buildMonthCells(cursor, weekStart),
+    [cursor, weekStart],
+  );
+  const weekdays = useMemo(() => orderedWeekdays(weekStart), [weekStart]);
 
   const tasksByDate = tasksData?.tasks ?? {};
 
@@ -77,7 +92,7 @@ export function Calendar() {
       </div>
 
       <div className="cal-weekday-row">
-        {WEEKDAYS.map((d) => (
+        {weekdays.map((d) => (
           <span key={d} className="cal-weekday">
             {d}
           </span>
@@ -103,7 +118,9 @@ export function Calendar() {
               onClick={() => setSelectedDate(cell.key)}
             >
               <span className="cal-cell-day">{cell.day}</span>
-              {count > 0 && <span className="cal-cell-count">{count}</span>}
+              {showTaskBadges && count > 0 && (
+                <span className="cal-cell-count">{count}</span>
+              )}
             </button>
           );
         })}

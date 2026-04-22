@@ -47,6 +47,7 @@ interface DashboardStore {
   updatePositions: (positions: GridPosition[]) => void;
   addWidget: (type: string) => void;
   removeWidget: (i: string) => void;
+  setWidgetSettings: (i: string, settings: Record<string, unknown>) => void;
   setUIMode: (mode: UIMode) => void;
   setSelectedDate: (date: string) => void;
   reset: () => void;
@@ -207,6 +208,18 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       layout: {
         ...state.layout,
         widgets: state.layout.widgets.filter((w) => w.i !== i),
+      },
+    }));
+    scheduleSave();
+  },
+
+  setWidgetSettings(i, settings) {
+    set((state) => ({
+      layout: {
+        ...state.layout,
+        widgets: state.layout.widgets.map((w) =>
+          w.i === i ? { ...w, settings } : w,
+        ),
       },
     }));
     scheduleSave();

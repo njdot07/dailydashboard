@@ -43,12 +43,15 @@ export interface CalendarCell {
 }
 
 // Builds a 42-cell (6-row) grid for the given month, padded with
-// leading/trailing days from neighbouring months. Week starts Sunday.
-export function buildMonthCells(cursor: Date): CalendarCell[] {
+// leading/trailing days from neighbouring months. weekStart: 0=Sun, 1=Mon.
+export function buildMonthCells(
+  cursor: Date,
+  weekStart: number = 0,
+): CalendarCell[] {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstOfMonth = new Date(year, month, 1);
-  const startOffset = firstOfMonth.getDay();
+  const startOffset = (firstOfMonth.getDay() - weekStart + 7) % 7;
   const gridStart = new Date(year, month, 1 - startOffset);
   const todayStr = todayKey();
 

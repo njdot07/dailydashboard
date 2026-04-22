@@ -1,5 +1,13 @@
-import { forwardRef, type ComponentType, type HTMLAttributes } from 'react';
+import {
+  forwardRef,
+  useState,
+  type ComponentType,
+  type HTMLAttributes,
+} from 'react';
 import { useDashboardStore } from '../stores/dashboardStore';
+import { getWidgetEntry } from './widgets/registry';
+import { WidgetContext } from './WidgetContext';
+import { WidgetSettingsModal } from './WidgetSettingsModal';
 
 interface WidgetShellProps extends HTMLAttributes<HTMLDivElement> {
   widgetId: string;
@@ -27,9 +35,15 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
   ) {
     const uiMode = useDashboardStore((s) => s.uiMode);
     const removeWidget = useDashboardStore((s) => s.removeWidget);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+
+    const entry = getWidgetEntry(widgetType);
+    const hasSchema =
+      entry?.settingsSchema !== undefined &&
+      Object.keys(entry.settingsSchema).length > 0;
 
     const showDragHandle = uiMode === 'move';
-    const showRemoveButton = uiMode === 'edit';
+    const showEditButtons = uiMode === 'edit';
 
     return (
       <div
@@ -39,16 +53,29 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
         style={style}
         data-widget-type={widgetType}
       >
-        {showRemoveButton && (
-          <button
-            type="button"
-            className="widget-shell__remove"
-            onClick={() => removeWidget(widgetId)}
-            aria-label={title ? `Remove ${title}` : 'Remove widget'}
-            title="Remove"
-          >
-            ×
-          </button>
+        {showEditButtons && (
+          <div className="widget-shell__tools">
+            <button
+              type="button"
+              className="widget-shell__remove"
+              onClick={() => removeWidget(widgetId)}
+              aria-label={title ? `Remove ${title}` : 'Remove widget'}
+              title="Remove"
+            >
+              ×
+            </button>
+            {hasSchema && (
+              <button
+                type="button"
+                className="widget-shell__settings"
+                onClick={() => setSettingsOpen(true)}
+                aria-label={title ? `${title} settings` : 'Widget settings'}
+                title="Settings"
+              >
+                ⚙
+              </button>
+            )}
+          </div>
         )}
         {showDragHandle && (
           <span
@@ -59,10 +86,20 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
             ⠿
           </span>
         )}
-        <div className="widget-shell__body">
-          <Component />
-        </div>
+        <WidgetContext.Provider value={{ widgetId, widgetType }}>
+          <div className="widget-shell__body">
+            <Component />
+          </div>
+        </WidgetContext.Provider>
         {children}
+
+        {hasSchema && (
+          <WidgetSettingsModal
+            open={settingsOpen}
+            widgetId={widgetId}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
       </div>
     );
   },

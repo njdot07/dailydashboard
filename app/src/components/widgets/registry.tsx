@@ -7,6 +7,7 @@ import { Calendar } from './Calendar';
 import { PinnedNotes } from './PinnedNotes';
 import { Launchpad } from './Launchpad';
 import { NotesLibrary } from './NotesLibrary';
+import type { SettingsSchema } from '../../lib/widgetSettings';
 
 export interface WidgetEntry {
   type: string;
@@ -14,13 +15,10 @@ export interface WidgetEntry {
   Component: ComponentType;
   defaultSize: { w: number; h: number };
   minSize?: { w: number; h: number };
-  // If true, only one instance of this widget type can exist at a time.
-  // Widgets that render user data (pinned-notes, launchpad) could theoretically
-  // be duplicated; most widgets don't make sense duplicated.
   singleton?: boolean;
+  settingsSchema?: SettingsSchema;
 }
 
-// Ordered for palette display — most commonly added widgets first.
 export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
   quote: {
     type: 'quote',
@@ -29,6 +27,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     defaultSize: { w: 12, h: 2 },
     minSize: { w: 4, h: 2 },
     singleton: true,
+    settingsSchema: {
+      autoRefreshSeconds: {
+        type: 'number',
+        label: 'Auto-refresh every (seconds)',
+        default: 0,
+        min: 0,
+        max: 3600,
+        step: 10,
+        hint: '0 disables auto-refresh. Click the ↻ button to change manually.',
+      },
+    },
   },
   'status-bar': {
     type: 'status-bar',
@@ -53,6 +62,23 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     defaultSize: { w: 3, h: 4 },
     minSize: { w: 3, h: 3 },
     singleton: true,
+    settingsSchema: {
+      defaultDuration: {
+        type: 'number',
+        label: 'Default task duration (min)',
+        default: 30,
+        min: 0,
+        max: 600,
+        step: 5,
+        hint: 'Prefilled when you add a new task.',
+      },
+      hideCompleted: {
+        type: 'boolean',
+        label: 'Hide completed tasks',
+        default: false,
+        hint: 'Tick to keep the list focused on what is still to do.',
+      },
+    },
   },
   calendar: {
     type: 'calendar',
@@ -61,6 +87,22 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     defaultSize: { w: 6, h: 6 },
     minSize: { w: 4, h: 5 },
     singleton: true,
+    settingsSchema: {
+      weekStartsOn: {
+        type: 'select',
+        label: 'Week starts on',
+        default: 'sun',
+        options: [
+          { value: 'sun', label: 'Sunday' },
+          { value: 'mon', label: 'Monday' },
+        ],
+      },
+      showTaskBadges: {
+        type: 'boolean',
+        label: 'Show task count on each day',
+        default: true,
+      },
+    },
   },
   'pinned-notes': {
     type: 'pinned-notes',
@@ -77,6 +119,13 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     defaultSize: { w: 3, h: 5 },
     minSize: { w: 3, h: 3 },
     singleton: true,
+    settingsSchema: {
+      openInNewTab: {
+        type: 'boolean',
+        label: 'Open links in a new tab',
+        default: true,
+      },
+    },
   },
   notes: {
     type: 'notes',

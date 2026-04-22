@@ -1475,27 +1475,51 @@ input.launchpad-category-name {
   cursor: grabbing;
 }
 
-.widget-shell__remove {
+/* Edit-mode tool cluster — sits in the top-left, groups × remove and ⚙ settings. */
+.widget-shell__tools {
   position: absolute;
   top: 10px;
   left: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 6;
+}
+
+.widget-shell__remove,
+.widget-shell__settings {
   width: 24px;
   height: 24px;
   border: 0;
-  background: rgba(255, 120, 120, 0.15);
-  color: #ff9090;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   line-height: 1;
   padding: 0;
-  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.15s, color 0.15s;
+}
+
+.widget-shell__remove {
+  background: rgba(255, 120, 120, 0.15);
+  color: #ff9090;
+  font-size: 1.2rem;
 }
 
 .widget-shell__remove:hover {
   background: rgba(255, 120, 120, 0.32);
   color: #ffbcbc;
+}
+
+.widget-shell__settings {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.widget-shell__settings:hover {
+  background: rgba(99, 102, 241, 0.32);
+  color: #c7d2fe;
 }
 
 /* Placeholder shown while dragging */
@@ -2136,4 +2160,83 @@ body[data-ui-mode='move'] .widget-shell:active {
   display: flex;
   justify-content: flex-end;
   gap: 0.4rem;
+}
+
+/* ============================================================
+   Widget settings modal form (generic schema-driven)
+   ============================================================ */
+
+.widget-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.ws-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.ws-field__label {
+  color: #fff;
+}
+
+.ws-field__hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+.ws-field input[type='number'],
+.ws-field input[type='text'],
+.ws-field select {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+
+.ws-field input:focus,
+.ws-field select:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.ws-field--toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ws-field--toggle input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ws-field--toggle .ws-field__label {
+  flex: 1;
+}
+
+.ws-field--toggle .ws-field__hint {
+  flex-basis: 100%;
+  margin-left: calc(18px + 0.6rem);
+}
+
+.widget-settings-form__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.25rem;
 }
