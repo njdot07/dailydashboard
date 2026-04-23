@@ -2,24 +2,23 @@ import { useMemo, useState } from 'react';
 import { useDashboardStore } from '../stores/dashboardStore';
 import {
   applyImport,
-  parseLegacyExport,
-  type LegacyImportResult,
-} from '../lib/legacyImport';
+  downloadExport,
+  parseImport,
+  type ImportMode,
+  type ImportResult,
+} from '../lib/dataPortability';
 import type { WidgetDataShape } from '../lib/types';
 
-type ImportMode = 'merge' | 'replace';
-
-export function LegacyImportSection() {
+export function DataPortabilitySection() {
   const widgetData = useDashboardStore((s) => s.layout.widgetData ?? {});
   const setWidgetData = useDashboardStore((s) => s.setWidgetData);
 
   const [json, setJson] = useState('');
   const [mode, setMode] = useState<ImportMode>('merge');
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parsed, setParsed] = useState<LegacyImportResult | null>(null);
+  const [parsed, setParsed] = useState<ImportResult | null>(null);
   const [imported, setImported] = useState(false);
 
-  // Reset the success banner any time the user changes the input.
   const onJsonChange = (value: string) => {
     setJson(value);
     if (imported) setImported(false);
@@ -30,7 +29,7 @@ export function LegacyImportSection() {
   const parse = () => {
     setParseError(null);
     try {
-      const result = parseLegacyExport(json);
+      const result = parseImport(json);
       const { preview } = result;
       const total =
         preview.pinnedNotes +
@@ -39,7 +38,7 @@ export function LegacyImportSection() {
         preview.notesFromThoughts;
       if (total === 0) {
         setParseError(
-          'Parsed successfully but nothing to import — the JSON has no pinned notes, tasks, launchpad categories, or thought-space items.',
+          'Parsed successfully but nothing to import — the file has no pinned notes, tasks, launchpad categories, or notes.',
         );
         setParsed(null);
         return;
@@ -68,12 +67,22 @@ export function LegacyImportSection() {
     setJson('');
   };
 
+  const hasAnyData =
+    (widgetData['pinned-notes']?.notes.length ?? 0) > 0 ||
+    (widgetData.launchpad?.categories.length ?? 0) > 0 ||
+    (widgetData['quick-tasks']
+      ? Object.keys(widgetData['quick-tasks'].tasks).length > 0
+      : false) ||
+    (widgetData.notes?.notes.length ?? 0) > 0;
+
   const preview = parsed?.preview;
   const previewLines = useMemo(() => {
     if (!preview) return [];
     const lines: string[] = [];
     if (preview.pinnedNotes)
-      lines.push(`${preview.pinnedNotes} pinned note${preview.pinnedNotes === 1 ? '' : 's'}`);
+      lines.push(
+        `${preview.pinnedNotes} pinned note${preview.pinnedNotes === 1 ? '' : 's'}`,
+      );
     if (preview.launchpadCategories)
       lines.push(
         `${preview.launchpadCategories} launchpad ${preview.launchpadCategories === 1 ? 'category' : 'categories'} (${preview.launchpadLinks} links)`,
@@ -84,32 +93,73 @@ export function LegacyImportSection() {
       );
     if (preview.notesFromThoughts)
       lines.push(
-        `${preview.notesFromThoughts} note${preview.notesFromThoughts === 1 ? '' : 's'} from thought spaces`,
+        `${preview.notesFromThoughts} note${preview.notesFromThoughts === 1 ? '' : 's'}`,
       );
     return lines;
   }, [preview]);
 
+  const onFilePick = async (file: File) => {
+    const text = await file.text();
+    onJsonChange(text);
+  };
+
   return (
     <section className="settings-section">
-      <h3 className="settings-section-title">Import legacy data</h3>
+      <h3 className="settings-section-title">Backup & restore</h3>
       <p className="settings-section-hint">
-        Have data from the old <code>index.html</code> dashboard? Export it
-        using <code>legacy-export.html</code> in the repo root (serve it from
-        the old <code>server.ps1</code> on port 8080), then paste the JSON below.
+        Download a snapshot of your dashboard as a JSON file, or restore from
+        one. Also accepts exports from the original vanilla dashboard if you
+        ever need to migrate more data.
       </p>
 
-      <label className="legacy-import__field">
-        <span>Pasted JSON</span>
+      {/* ---- Export ---- */}
+      <div className="data-port__row">
+        <button
+          type="button"
+          className="primary-btn small-btn"
+          onClick={() => downloadExport(widgetData)}
+          disabled={!hasAnyData}
+          title={hasAnyData ? undefined : 'Nothing to export yet'}
+        >
+          Download backup
+        </button>
+        <span className="settings-section-hint">
+          Saves a <code>daily-dashboard-backup-*.json</code> file to your
+          Downloads folder.
+        </span>
+      </div>
+
+      {/* ---- Import ---- */}
+      <label className="data-port__field">
+        <span>Restore from JSON (paste or drop a backup file)</span>
         <textarea
           value={json}
           onChange={(e) => onJsonChange(e.target.value)}
-          placeholder={'{ "pinnedNotes": [...], "settings": {...}, "2026-04-22": {...}, ... }'}
-          rows={6}
+          placeholder={
+            '{ "__format": "daily-dashboard/v1", "pinned-notes": { "notes": [...] }, ... }'
+          }
+          rows={5}
         />
       </label>
 
-      <div className="legacy-import__mode">
-        <label className="legacy-import__radio">
+      <div className="data-port__row">
+        <label className="ghost-btn small-btn data-port__file-label">
+          Choose file…
+          <input
+            type="file"
+            accept="application/json,.json"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onFilePick(f);
+              e.target.value = '';
+            }}
+            hidden
+          />
+        </label>
+      </div>
+
+      <div className="data-port__mode">
+        <label className="data-port__radio">
           <input
             type="radio"
             name="import-mode"
@@ -118,10 +168,11 @@ export function LegacyImportSection() {
             onChange={() => setMode('merge')}
           />
           <span>
-            <strong>Merge</strong> — add imported items to your current data
+            <strong>Merge</strong> — add imported items alongside your current
+            data
           </span>
         </label>
-        <label className="legacy-import__radio">
+        <label className="data-port__radio">
           <input
             type="radio"
             name="import-mode"
@@ -130,13 +181,13 @@ export function LegacyImportSection() {
             onChange={() => setMode('replace')}
           />
           <span>
-            <strong>Replace</strong> — clear matching widgets first, then
+            <strong>Replace</strong> — wipe matching widgets first, then
             import (destructive)
           </span>
         </label>
       </div>
 
-      <div className="legacy-import__actions">
+      <div className="data-port__actions">
         <button
           type="button"
           className="ghost-btn small-btn"
@@ -159,8 +210,14 @@ export function LegacyImportSection() {
       {parseError && <div className="auth-error">{parseError}</div>}
 
       {parsed && (
-        <div className="legacy-import__preview">
-          <strong>Will import:</strong>
+        <div className="data-port__preview">
+          <strong>
+            Will import ({parsed.preview.format === 'legacy' ? 'legacy' : 'native'} format
+            {parsed.preview.exportedAt
+              ? `, exported ${new Date(parsed.preview.exportedAt).toLocaleString()}`
+              : ''}
+            ):
+          </strong>
           <ul>
             {previewLines.map((l) => (
               <li key={l}>{l}</li>
@@ -171,8 +228,8 @@ export function LegacyImportSection() {
 
       {imported && (
         <div className="auth-notice">
-          Imported. Your widgets should show the new data now — the import
-          also saved to Supabase in the background.
+          Imported. The widgets on your dashboard should reflect the new
+          data; it's also saved to Supabase in the background.
         </div>
       )}
     </section>

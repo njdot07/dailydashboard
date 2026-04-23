@@ -2309,10 +2309,30 @@ body[data-ui-mode='move'] .widget-shell:active {
 }
 
 /* ============================================================
-   Legacy import section
+   Backup & restore (data portability)
    ============================================================ */
 
-.legacy-import__field {
+.data-port__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.data-port__row .settings-section-hint {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.data-port__file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.data-port__field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -2320,11 +2340,11 @@ body[data-ui-mode='move'] .widget-shell:active {
   margin-bottom: 0.75rem;
 }
 
-.legacy-import__field span {
+.data-port__field span {
   opacity: 0.7;
 }
 
-.legacy-import__field textarea {
+.data-port__field textarea {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.3);
@@ -2336,19 +2356,19 @@ body[data-ui-mode='move'] .widget-shell:active {
   resize: vertical;
 }
 
-.legacy-import__field textarea:focus {
+.data-port__field textarea:focus {
   outline: 2px solid #6366f1;
   outline-offset: 1px;
 }
 
-.legacy-import__mode {
+.data-port__mode {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   margin-bottom: 0.6rem;
 }
 
-.legacy-import__radio {
+.data-port__radio {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -2357,18 +2377,18 @@ body[data-ui-mode='move'] .widget-shell:active {
   cursor: pointer;
 }
 
-.legacy-import__radio input[type='radio'] {
+.data-port__radio input[type='radio'] {
   accent-color: #6366f1;
   margin-top: 0.15rem;
 }
 
-.legacy-import__actions {
+.data-port__actions {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
 }
 
-.legacy-import__preview {
+.data-port__preview {
   padding: 0.75rem 0.9rem;
   background: rgba(99, 102, 241, 0.12);
   border: 1px solid rgba(99, 102, 241, 0.3);
@@ -2378,11 +2398,11 @@ body[data-ui-mode='move'] .widget-shell:active {
   margin-top: 0.35rem;
 }
 
-.legacy-import__preview ul {
+.data-port__preview ul {
   margin: 0.35rem 0 0;
   padding-left: 1.2rem;
 }
 
-.legacy-import__preview li {
+.data-port__preview li {
   margin: 0.1rem 0;
 }

@@ -1,28 +1,23 @@
-// Legacy → new import adapter.
+// Backup + restore for dashboard widget data.
 //
-// The old dashboard kept everything in one blob under
-// localStorage['fs_user_data']. Shape (trimmed to fields we care about):
+// Supports two formats:
 //
-//   {
-//     settings: {
-//       launchpadCategories: [
-//         { id, name, open, links: [{ name, url, icon }] }
-//       ]
-//     },
-//     pinnedNotes: [{ id, text }],
-//     [YYYY-MM-DD]: {
-//       tasks: [{ id, text, time, timeEnd, duration, color, completed }],
-//       thoughtSpaces: [
-//         { id, title, sections: [
-//           { id, title, type, items: [{ id, text }] }
-//         ]}
-//       ]
-//     },
-//     ...
-//   }
+// 1. Native "daily-dashboard/v1" — what exportDashboard() produces. Just the
+//    four widget-data slices with a small header for identification:
 //
-// This module maps that blob into three slices of our new WidgetDataShape
-// and returns a preview + normalised payload the UI can apply.
+//      {
+//        "__format": "daily-dashboard/v1",
+//        "__exportedAt": "2026-04-23T12:34:56.000Z",
+//        "pinned-notes": { "notes": [...] },
+//        "launchpad":   { "categories": [...] },
+//        "quick-tasks": { "tasks": {...} },
+//        "notes":       { "notes": [...] }
+//      }
+//
+// 2. Legacy fs_user_data — the old vanilla dashboard's localStorage shape.
+//    Detected by the presence of top-level `pinnedNotes`, `settings`, or
+//    date-keyed entries (YYYY-MM-DD). Mapped into the native shape by the
+//    same adapter originally built for the one-shot migration.
 
 import type {
   LaunchpadCategory,
@@ -33,17 +28,23 @@ import type {
   WidgetDataShape,
 } from './types';
 
-export interface LegacyPreview {
+const NATIVE_FORMAT_ID = 'daily-dashboard/v1';
+
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportPreview {
+  format: 'native' | 'legacy';
   pinnedNotes: number;
   launchpadCategories: number;
   launchpadLinks: number;
   taskDates: number;
   tasksTotal: number;
   notesFromThoughts: number;
+  exportedAt?: string;
 }
 
-export interface LegacyImportResult {
-  preview: LegacyPreview;
+export interface ImportResult {
+  preview: ImportPreview;
   payload: {
     'pinned-notes'?: { notes: PinnedNote[] };
     launchpad?: { categories: LaunchpadCategory[] };
@@ -52,17 +53,128 @@ export interface LegacyImportResult {
   };
 }
 
+// ============================================================
+// Export (current widget data → downloadable JSON)
+// ============================================================
+
+export function exportDashboard(widgetData: WidgetDataShape): string {
+  const payload = {
+    __format: NATIVE_FORMAT_ID,
+    __exportedAt: new Date().toISOString(),
+    'pinned-notes': widgetData['pinned-notes'],
+    launchpad: widgetData.launchpad,
+    'quick-tasks': widgetData['quick-tasks'],
+    notes: widgetData.notes,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+export function downloadExport(widgetData: WidgetDataShape): void {
+  const json = exportDashboard(widgetData);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `daily-dashboard-backup-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// Import (detect format, parse, normalise)
+// ============================================================
+
+type Raw = Record<string, unknown>;
+
 function randomId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+function detectFormat(obj: Raw): 'native' | 'legacy' | 'unknown' {
+  if (typeof obj.__format === 'string' && obj.__format === NATIVE_FORMAT_ID) {
+    return 'native';
+  }
+  // Native format even without header, if any of our slice keys are present.
+  if (
+    obj['pinned-notes'] !== undefined ||
+    obj['launchpad'] !== undefined ||
+    obj['quick-tasks'] !== undefined ||
+    obj['notes'] !== undefined
+  ) {
+    return 'native';
+  }
+  // Legacy: top-level pinnedNotes, settings, or a YYYY-MM-DD key.
+  if (obj.pinnedNotes !== undefined || obj.settings !== undefined) {
+    return 'legacy';
+  }
+  if (Object.keys(obj).some((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))) {
+    return 'legacy';
+  }
+  return 'unknown';
+}
+
+// ----- native parser (widgetData is already the right shape; we just sanity-check) -----
+
+function parseNative(obj: Raw): ImportResult {
+  const out: ImportResult['payload'] = {};
+
+  const pin = obj['pinned-notes'];
+  if (pin && typeof pin === 'object' && Array.isArray((pin as Raw).notes)) {
+    out['pinned-notes'] = { notes: (pin as { notes: PinnedNote[] }).notes };
+  }
+
+  const lp = obj.launchpad;
+  if (lp && typeof lp === 'object' && Array.isArray((lp as Raw).categories)) {
+    out.launchpad = {
+      categories: (lp as { categories: LaunchpadCategory[] }).categories,
+    };
+  }
+
+  const qt = obj['quick-tasks'];
+  if (qt && typeof qt === 'object' && (qt as Raw).tasks && typeof (qt as Raw).tasks === 'object') {
+    out['quick-tasks'] = {
+      tasks: (qt as { tasks: Record<string, QuickTask[]> }).tasks,
+    };
+  }
+
+  const n = obj.notes;
+  if (n && typeof n === 'object' && Array.isArray((n as Raw).notes)) {
+    out.notes = { notes: (n as { notes: Note[] }).notes };
+  }
+
+  const preview: ImportPreview = {
+    format: 'native',
+    pinnedNotes: out['pinned-notes']?.notes.length ?? 0,
+    launchpadCategories: out.launchpad?.categories.length ?? 0,
+    launchpadLinks:
+      out.launchpad?.categories.reduce((n, c) => n + c.links.length, 0) ?? 0,
+    taskDates: out['quick-tasks'] ? Object.keys(out['quick-tasks'].tasks).length : 0,
+    tasksTotal:
+      out['quick-tasks']
+        ? Object.values(out['quick-tasks'].tasks).reduce(
+            (acc, arr) => acc + arr.length,
+            0,
+          )
+        : 0,
+    notesFromThoughts: 0,
+    exportedAt:
+      typeof obj.__exportedAt === 'string' ? obj.__exportedAt : undefined,
+  };
+
+  return { preview, payload: out };
+}
+
+// ----- legacy parser (maps fs_user_data → native widgetData) -----
+
 function parseDurationLike(value: unknown): number {
   if (typeof value === 'number' && !Number.isNaN(value)) {
     return Math.max(0, Math.floor(value));
   }
-  // Legacy stored "30min", "1h", "45m" etc.
   if (typeof value === 'string') {
     const m = /([\d.]+)\s*(h|min|m)/i.exec(value.trim());
     if (!m) return 0;
@@ -85,11 +197,14 @@ function mapPinnedNotes(arr: unknown): PinnedNote[] {
           ? (raw as { text: string }).text
           : null;
       if (!text) return null;
-      const id =
-        typeof (raw as { id?: unknown }).id === 'string'
-          ? (raw as { id: string }).id
-          : randomId();
-      return { id, text, createdAt: now };
+      return {
+        id:
+          typeof (raw as { id?: unknown }).id === 'string'
+            ? (raw as { id: string }).id
+            : randomId(),
+        text,
+        createdAt: now,
+      };
     })
     .filter((n): n is PinnedNote => n !== null);
 }
@@ -105,9 +220,6 @@ function mapLaunchpad(raw: unknown): LaunchpadCategory[] {
         open?: unknown;
         links?: unknown;
       };
-      const name = typeof c.name === 'string' ? c.name : 'Untitled';
-      const id = typeof c.id === 'string' ? c.id : randomId();
-      const open = typeof c.open === 'boolean' ? c.open : false;
       const links: LaunchpadLink[] = Array.isArray(c.links)
         ? c.links
             .map((l): LaunchpadLink | null => {
@@ -130,7 +242,12 @@ function mapLaunchpad(raw: unknown): LaunchpadCategory[] {
             })
             .filter((x): x is LaunchpadLink => x !== null)
         : [];
-      return { id, name, open, links };
+      return {
+        id: typeof c.id === 'string' ? c.id : randomId(),
+        name: typeof c.name === 'string' ? c.name : 'Untitled',
+        open: typeof c.open === 'boolean' ? c.open : false,
+        links,
+      };
     })
     .filter((c): c is LaunchpadCategory => c !== null);
 }
@@ -166,7 +283,7 @@ interface ThoughtSpace {
   sections?: unknown;
 }
 
-function mapThoughtsToNotes(blob: Record<string, unknown>): Note[] {
+function mapThoughtsToNotes(blob: Raw): Note[] {
   const notes: Note[] = [];
   const now = new Date().toISOString();
   for (const [dateKey, dayRaw] of Object.entries(blob)) {
@@ -186,7 +303,8 @@ function mapThoughtsToNotes(blob: Record<string, unknown>): Note[] {
         const items = Array.isArray(section.items)
           ? (section.items as unknown[])
               .map((it) =>
-                it && typeof it === 'object' &&
+                it &&
+                typeof it === 'object' &&
                 typeof (it as { text?: unknown }).text === 'string'
                   ? ((it as { text: string }).text || '').trim()
                   : '',
@@ -206,37 +324,18 @@ function mapThoughtsToNotes(blob: Record<string, unknown>): Note[] {
   return notes;
 }
 
-export function parseLegacyExport(json: string): LegacyImportResult {
-  const trimmed = json.trim();
-  if (!trimmed) {
-    throw new Error('Paste your exported JSON first.');
-  }
-  let data: unknown;
-  try {
-    data = JSON.parse(trimmed);
-  } catch (e) {
-    throw new Error('That does not look like valid JSON.');
-  }
-  if (!data || typeof data !== 'object') {
-    throw new Error('Expected an object at the top level.');
-  }
-  const blob = data as Record<string, unknown>;
+function parseLegacy(obj: Raw): ImportResult {
+  const pinned = mapPinnedNotes(obj.pinnedNotes);
 
-  // Pinned notes
-  const pinned = mapPinnedNotes(blob.pinnedNotes);
-
-  // Launchpad (under settings.launchpadCategories in the legacy shape)
-  const settingsRaw = blob.settings;
   const settings =
-    settingsRaw && typeof settingsRaw === 'object'
-      ? (settingsRaw as Record<string, unknown>)
+    obj.settings && typeof obj.settings === 'object'
+      ? (obj.settings as Raw)
       : {};
   const launchpad = mapLaunchpad(settings.launchpadCategories);
 
-  // Tasks, grouped by date key
   const tasksByDate: Record<string, QuickTask[]> = {};
   let tasksTotal = 0;
-  for (const [key, dayRaw] of Object.entries(blob)) {
+  for (const [key, dayRaw] of Object.entries(obj)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
     if (!dayRaw || typeof dayRaw !== 'object') continue;
     const day = dayRaw as { tasks?: unknown };
@@ -250,10 +349,9 @@ export function parseLegacyExport(json: string): LegacyImportResult {
     }
   }
 
-  // Thought spaces → notes (best-effort flatten)
-  const notes = mapThoughtsToNotes(blob);
+  const notes = mapThoughtsToNotes(obj);
 
-  const payload: LegacyImportResult['payload'] = {};
+  const payload: ImportResult['payload'] = {};
   if (pinned.length) payload['pinned-notes'] = { notes: pinned };
   if (launchpad.length) payload.launchpad = { categories: launchpad };
   if (Object.keys(tasksByDate).length) {
@@ -261,7 +359,8 @@ export function parseLegacyExport(json: string): LegacyImportResult {
   }
   if (notes.length) payload.notes = { notes };
 
-  const preview: LegacyPreview = {
+  const preview: ImportPreview = {
+    format: 'legacy',
     pinnedNotes: pinned.length,
     launchpadCategories: launchpad.length,
     launchpadLinks: launchpad.reduce((n, c) => n + c.links.length, 0),
@@ -273,13 +372,37 @@ export function parseLegacyExport(json: string): LegacyImportResult {
   return { preview, payload };
 }
 
-// Merge an imported payload into existing widgetData. Merging appends items
-// (duplicates possible — caller is expected to show a preview + get explicit
-// confirmation). Replace mode simply overwrites the matching slices.
+// ----- public entrypoint -----
+
+export function parseImport(json: string): ImportResult {
+  const trimmed = json.trim();
+  if (!trimmed) throw new Error('Paste JSON first.');
+  let data: unknown;
+  try {
+    data = JSON.parse(trimmed);
+  } catch {
+    throw new Error('That does not look like valid JSON.');
+  }
+  if (!data || typeof data !== 'object') {
+    throw new Error('Expected an object at the top level.');
+  }
+  const obj = data as Raw;
+  const format = detectFormat(obj);
+  if (format === 'native') return parseNative(obj);
+  if (format === 'legacy') return parseLegacy(obj);
+  throw new Error(
+    'Could not recognise this JSON. Expected a dashboard backup (native format) or legacy fs_user_data.',
+  );
+}
+
+// ============================================================
+// Apply (merge or replace into existing widgetData)
+// ============================================================
+
 export function applyImport(
   current: WidgetDataShape,
-  payload: LegacyImportResult['payload'],
-  mode: 'merge' | 'replace' = 'merge',
+  payload: ImportResult['payload'],
+  mode: ImportMode = 'merge',
 ): WidgetDataShape {
   const next: WidgetDataShape = { ...current };
 
