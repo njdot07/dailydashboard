@@ -6,7 +6,6 @@ import type {
   DashboardStateRow,
   WidgetDataMap,
   WidgetInstance,
-  QuickTask,
 } from '../lib/types';
 import { DEFAULT_WIDGETS } from '../lib/defaultLayout';
 import { getWidgetEntry } from '../components/widgets/registry';
@@ -305,25 +304,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
 
 export const selectIsEditMode = (s: DashboardStore) => s.uiMode === 'edit';
 
-// Merge today-grouped tasks across every QuickTasks widget in the layout.
-// StatusBar and Calendar use this so a user with multiple task boards sees
-// all upcoming items regardless of which board they sit in.
-export function selectMergedQuickTasks(
-  s: DashboardStore,
-): Record<string, QuickTask[]> {
-  const result: Record<string, QuickTask[]> = {};
-  const data = s.layout.widgetData ?? {};
-  for (const widget of s.layout.widgets) {
-    if (widget.type !== 'quick-tasks') continue;
-    const slice = data[widget.i] as
-      | { tasks?: Record<string, QuickTask[]> }
-      | undefined;
-    const tasks = slice?.tasks;
-    if (!tasks) continue;
-    for (const [date, arr] of Object.entries(tasks)) {
-      if (!Array.isArray(arr)) continue;
-      result[date] = [...(result[date] ?? []), ...arr];
-    }
-  }
-  return result;
-}
+// A merged view of QuickTasks data across all instances is exposed via
+// the `useMergedQuickTasks` hook (in hooks/useMergedQuickTasks.ts) —
+// kept there because a plain store selector that builds a new object on
+// every call triggers Zustand's re-render loop.

@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import {
-  useDashboardStore,
-  selectMergedQuickTasks,
-} from '../../stores/dashboardStore';
+import { useMergedQuickTasks } from '../../hooks/useMergedQuickTasks';
 import { addMinutes, todayKey } from '../../lib/date';
 import { TASK_COLORS } from './QuickTasks';
 import type { QuickTask } from '../../lib/types';
@@ -97,7 +94,7 @@ export function Clock() {
 
   // Read today's tasks reactively — merged across every QuickTasks widget
   // so duplicates show their arcs together.
-  const tasksByDate = useDashboardStore(selectMergedQuickTasks);
+  const tasksByDate = useMergedQuickTasks();
   const todayTasks = tasksByDate[todayKey()] ?? [];
   // Arcs drawn at r=1.03 straddle the clock border — half sits on the circle
   // edge, half extends into the surrounding space. Widget container has room

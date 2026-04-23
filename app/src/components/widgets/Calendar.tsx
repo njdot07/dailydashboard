@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  useDashboardStore,
-  selectMergedQuickTasks,
-} from '../../stores/dashboardStore';
+import { useDashboardStore } from '../../stores/dashboardStore';
+import { useMergedQuickTasks } from '../../hooks/useMergedQuickTasks';
 import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 import {
   buildMonthCells,
@@ -26,7 +24,7 @@ function orderedWeekdays(weekStart: number): string[] {
 export function Calendar() {
   // Aggregate tasks across all QuickTasks widgets — Calendar shows the
   // union so the per-day badges and preview list are always complete.
-  const tasksByDate = useDashboardStore(selectMergedQuickTasks);
+  const tasksByDate = useMergedQuickTasks();
   const selectedDate = useDashboardStore((s) => s.selectedDate);
   const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);
   const { settings } = useWidgetSettings();

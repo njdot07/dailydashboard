@@ -1,8 +1,5 @@
 import { useEffect, useRef } from 'react';
-import {
-  useDashboardStore,
-  selectMergedQuickTasks,
-} from '../stores/dashboardStore';
+import { useMergedQuickTasks } from './useMergedQuickTasks';
 import { minutesSinceMidnight, todayKey } from '../lib/date';
 
 const REMINDER_OFFSET_MIN = 5;
@@ -16,7 +13,7 @@ const CHECK_INTERVAL_MS = 60_000;
 export function useTaskReminders() {
   // Merged so reminders fire for any task across duplicated QuickTasks
   // widgets.
-  const tasksByDate = useDashboardStore(selectMergedQuickTasks);
+  const tasksByDate = useMergedQuickTasks();
   const alertedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {

@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../../providers/UserProvider';
-import {
-  useDashboardStore,
-  selectMergedQuickTasks,
-} from '../../stores/dashboardStore';
+import { useDashboardStore } from '../../stores/dashboardStore';
+import { useMergedQuickTasks } from '../../hooks/useMergedQuickTasks';
 import { todayKey, minutesSinceMidnight } from '../../lib/date';
 import type { QuickTask } from '../../lib/types';
 
@@ -59,7 +57,7 @@ export function StatusBar() {
   // Aggregate today's tasks across every QuickTasks widget (users can have
   // multiple now — e.g. "Work tasks" + "Home tasks"). The status bar shows
   // the next upcoming item regardless of which widget it lives in.
-  const mergedTasks = useDashboardStore(selectMergedQuickTasks);
+  const mergedTasks = useMergedQuickTasks();
 
   // Re-evaluate "next task" once per minute even if tasks/profile don't change.
   const [minuteTick, setMinuteTick] = useState(0);
