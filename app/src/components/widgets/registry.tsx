@@ -7,6 +7,7 @@ import { Calendar } from './Calendar';
 import { PinnedNotes } from './PinnedNotes';
 import { Launchpad } from './Launchpad';
 import { NotesLibrary } from './NotesLibrary';
+import { Embed } from './Embed';
 import type { SettingsSchema } from '../../lib/widgetSettings';
 
 export interface WidgetEntry {
@@ -139,6 +140,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     Component: NotesLibrary,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 2, h: 2 },
+    singleton: false,
+  },
+  embed: {
+    type: 'embed',
+    title: 'Embed',
+    Component: Embed,
+    defaultSize: { w: 4, h: 5 },
+    minSize: { w: 2, h: 2 },
+    // Duplicatable — users typically want several (calendar, music,
+    // a dashboard from another service, etc.). Each instance owns its
+    // own URL via useWidgetData.
     singleton: false,
   },
 };
