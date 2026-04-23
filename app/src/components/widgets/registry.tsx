@@ -24,8 +24,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     type: 'quote',
     title: 'Quote',
     Component: Quote,
-    defaultSize: { w: 12, h: 2 },
-    minSize: { w: 3, h: 2 },
+    defaultSize: { w: 12, h: 3 },
+    minSize: { w: 3, h: 3 },
     singleton: true,
     settingsSchema: {
       autoRefreshSeconds: {
