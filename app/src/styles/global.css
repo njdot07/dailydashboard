@@ -301,6 +301,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg);
@@ -2412,4 +2414,82 @@ body[data-ui-mode='layout'] .widget-shell:active {
 
 .data-port__preview li {
   margin: 0.1rem 0;
+}
+
+/* Hint shown when user flips to Layout mode on a non-desktop breakpoint */
+.app-status--hint {
+  max-width: 600px;
+  margin: 0.5rem auto 1rem;
+  padding: 0.5rem 0.85rem;
+  text-align: center;
+  font-size: 0.85rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
+/* ============================================================
+   Responsive breakpoints (match react-grid-layout's sm/xs/xxs)
+   ============================================================ */
+
+/* Tablet and below — tighten header, shrink main padding */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.6rem 0.9rem;
+  }
+  .app-header__brand {
+    font-size: 1rem;
+  }
+  .app-header__left {
+    gap: 0.75rem;
+  }
+  .app-main {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 640px) {
+  .app-header__left {
+    order: 1;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .app-header__actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .app-header__user {
+    display: none;
+  }
+  .mode-btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* Phone */
+@media (max-width: 480px) {
+  .app-header__brand {
+    font-size: 0.95rem;
+  }
+  .app-main {
+    padding: 0.75rem 0.5rem 2rem;
+  }
+  .app-header__saving {
+    display: none;
+  }
+  /* Make the (now reflowed) widgets take full width of their single
+     column cells — react-grid-layout handles the positions, CSS just
+     relaxes internal padding so content doesn't get squeezed. */
+  .widget,
+  .glass-panel {
+    padding: 1rem;
+  }
+  .widget--clock {
+    padding: 0.5rem;
+  }
 }

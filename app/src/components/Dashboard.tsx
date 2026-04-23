@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
+import { Responsive, WidthProvider, type Layout } from 'react-grid-layout';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { useSecretsStore } from '../stores/secretsStore';
@@ -10,11 +10,17 @@ import { Settings } from './Settings';
 import { getWidgetEntry } from './widgets/registry';
 import { resolveThemeUrl, resolveThemeId } from '../lib/theme';
 
-const ResponsiveGridLayout = WidthProvider(GridLayout);
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
-const GRID_COLS = 12;
+// Standard react-grid-layout breakpoints with progressively fewer columns
+// so widgets reflow sensibly on narrower screens. Only `lg` is considered
+// the canonical, persisted layout — smaller breakpoints auto-derive from it.
+const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
 const GRID_ROW_HEIGHT = 48;
 const GRID_MARGIN: [number, number] = [14, 14];
+
+type Breakpoint = keyof typeof BREAKPOINTS;
 
 export function Dashboard() {
   const { user, profile } = useUser();
@@ -27,11 +33,8 @@ export function Dashboard() {
   const updatePositions = useDashboardStore((s) => s.updatePositions);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>('lg');
 
-  // Resolve the user's picked background. Image-based themes (marble, pastel,
-  // metallic, custom URLs) set --bg-url which the default .app-shell rule
-  // consumes. CSS-driven themes (brown) return null and rely on the
-  // data-theme attribute for their styling.
   const backgroundUrl = resolveThemeUrl(profile?.theme_preference);
   const themeId = resolveThemeId(profile?.theme_preference);
   const shellStyle = backgroundUrl
@@ -46,7 +49,6 @@ export function Dashboard() {
     };
   }, [user?.id, loadDashboard, reset]);
 
-  // Secrets vault lifecycle — bind to user and auto-lock on page unload.
   useEffect(() => {
     if (!user) {
       useSecretsStore.getState().reset();
@@ -61,8 +63,6 @@ export function Dashboard() {
     };
   }, [user?.id]);
 
-  // Drive a single body attribute so CSS can key mode-specific visuals
-  // (drag-handle visibility, scrollbar hide, content click-lock) off of it.
   useEffect(() => {
     document.body.setAttribute('data-ui-mode', uiMode);
     return () => {
@@ -70,10 +70,22 @@ export function Dashboard() {
     };
   }, [uiMode]);
 
+  useEffect(() => {
+    document.body.setAttribute('data-breakpoint', breakpoint);
+    return () => {
+      document.body.removeAttribute('data-breakpoint');
+    };
+  }, [breakpoint]);
+
   useTaskReminders();
 
-  const isDraggable = uiMode === 'layout';
-  const isResizable = uiMode === 'layout';
+  // Layout editing is only honest at the canonical lg breakpoint — that's
+  // the one we persist. At smaller widths the grid still renders and
+  // reflows, but drag/resize is disabled so users don't make changes that
+  // silently don't save.
+  const editableHere = breakpoint === 'lg';
+  const isDraggable = uiMode === 'layout' && editableHere;
+  const isResizable = uiMode === 'layout' && editableHere;
 
   const rglLayout: Layout[] = useMemo(
     () =>
@@ -93,11 +105,14 @@ export function Dashboard() {
     [widgets, isDraggable, isResizable],
   );
 
+  // Responsive takes a map of breakpoint → Layout[]. We only supply `lg`;
+  // the library derives the rest automatically when it needs them.
+  const layouts = useMemo(() => ({ lg: rglLayout }), [rglLayout]);
+
   const handleLayoutChange = (next: Layout[]) => {
     if (!isDraggable && !isResizable) return;
-    updatePositions(
-      next.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })),
-    );
+    if (breakpoint !== 'lg') return;
+    updatePositions(next.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })));
   };
 
   return (
@@ -107,11 +122,18 @@ export function Dashboard() {
       <main className="app-main">
         {loading && <p className="app-status">Loading your dashboard…</p>}
         {error && <p className="app-status app-status--error">{error}</p>}
+        {!editableHere && uiMode === 'layout' && (
+          <p className="app-status app-status--hint">
+            Layout editing is desktop-only. Resize the window wider to
+            rearrange widgets.
+          </p>
+        )}
         {!loading && !error && (
           <ResponsiveGridLayout
             className="dashboard-grid-rgl"
-            layout={rglLayout}
-            cols={GRID_COLS}
+            layouts={layouts}
+            breakpoints={BREAKPOINTS}
+            cols={COLS}
             rowHeight={GRID_ROW_HEIGHT}
             margin={GRID_MARGIN}
             isDraggable={isDraggable}
@@ -120,6 +142,7 @@ export function Dashboard() {
             compactType="vertical"
             preventCollision={false}
             onLayoutChange={handleLayoutChange}
+            onBreakpointChange={(bp) => setBreakpoint(bp as Breakpoint)}
           >
             {widgets.map((w) => {
               const entry = getWidgetEntry(w.type);
