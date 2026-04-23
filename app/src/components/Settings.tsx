@@ -7,6 +7,8 @@ import { SecretsSection } from './SecretsSection';
 import { DataPortabilitySection } from './DataPortabilitySection';
 import {
   THEME_PRESETS,
+  formatThemeValue,
+  parseThemeValue,
   isCustomThemeValue,
   resolveThemeUrl,
 } from '../lib/theme';
@@ -55,37 +57,58 @@ export function Settings({ open, onClose }: SettingsProps) {
     await updateProfile({ persona_tone: next });
   };
 
-  // Theme: either a preset id or a custom URL stored in theme_preference.
+  // Theme is a combined value ("pastel|<url>" | "default" | bare URL).
+  // Parse so we can reason about the active style and URL separately.
   const savedTheme = profile?.theme_preference ?? 'default';
+  const savedParsed = parseThemeValue(savedTheme);
   const savedIsCustom = isCustomThemeValue(savedTheme);
-  const [customUrlDraft, setCustomUrlDraft] = useState(
-    savedIsCustom ? savedTheme : '',
-  );
+  const [customUrlDraft, setCustomUrlDraft] = useState(savedParsed.url ?? '');
   const [themeError, setThemeError] = useState<string | null>(null);
   const [applyingCustom, setApplyingCustom] = useState(false);
 
-  // Keep the draft in sync if the profile changes underneath us (e.g. after
-  // a successful save) so the input reflects what's actually applied.
+  // Mirror profile changes back into the draft so the input always reflects
+  // the currently-applied URL.
   useEffect(() => {
-    if (savedIsCustom) setCustomUrlDraft(savedTheme);
-  }, [savedTheme, savedIsCustom]);
+    setCustomUrlDraft(savedParsed.url ?? '');
+    // parseThemeValue is pure so just depend on savedTheme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedTheme]);
 
+  // Swap the widget style while preserving any custom background URL the
+  // user has in effect (they set a preset for the look, not to replace
+  // their personal background).
   const setPresetTheme = async (presetId: string) => {
     setThemeError(null);
-    await updateProfile({ theme_preference: presetId });
+    const next = formatThemeValue(presetId, savedParsed.url);
+    await updateProfile({ theme_preference: next });
   };
 
   const applyCustomTheme = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = customUrlDraft.trim();
-    if (!trimmed) return;
-    if (!isCustomThemeValue(trimmed)) {
+    // Empty input + Apply clears the custom URL but keeps the active style.
+    if (!trimmed) {
+      setThemeError(null);
+      setApplyingCustom(true);
+      await updateProfile({
+        theme_preference: formatThemeValue(savedParsed.styleId, null),
+      });
+      setApplyingCustom(false);
+      return;
+    }
+    if (
+      !trimmed.startsWith('http://') &&
+      !trimmed.startsWith('https://') &&
+      !trimmed.startsWith('data:')
+    ) {
       setThemeError('Paste an http(s):// or data: URL.');
       return;
     }
     setThemeError(null);
     setApplyingCustom(true);
-    await updateProfile({ theme_preference: trimmed });
+    await updateProfile({
+      theme_preference: formatThemeValue(savedParsed.styleId, trimmed),
+    });
     setApplyingCustom(false);
   };
 
@@ -172,7 +195,9 @@ export function Settings({ open, onClose }: SettingsProps) {
             <span>Background</span>
             <div className="theme-presets">
               {THEME_PRESETS.map((preset) => {
-                const active = !savedIsCustom && savedTheme === preset.id;
+                // Active when THIS preset's id matches the parsed styleId,
+                // regardless of whether a custom URL is also in effect.
+                const active = savedParsed.styleId === preset.id;
                 const style: React.CSSProperties = preset.url
                   ? { backgroundImage: `url("${preset.url}")` }
                   : { background: preset.previewBg };
@@ -215,7 +240,7 @@ export function Settings({ open, onClose }: SettingsProps) {
               </button>
             </div>
             {themeError && <div className="auth-error">{themeError}</div>}
-            {savedIsCustom && (
+            {savedIsCustom && savedParsed.url && (
               <div className="theme-preview">
                 <span>Current custom background:</span>
                 <img
@@ -226,9 +251,10 @@ export function Settings({ open, onClose }: SettingsProps) {
               </div>
             )}
             <small className="settings-section-hint">
-              Paste the direct image URL (ending in .jpg / .png / .webp) or a
-              data: URL. Works with anything your browser can load — Unsplash
-              links, personal image host, etc.
+              Paste any http(s) or data: image URL. The active preset above
+              still controls the widget style — so you can mix your own
+              background with, say, the pastel bubbles look. Leave blank
+              and Apply to remove the custom background.
             </small>
           </form>
 

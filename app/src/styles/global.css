@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Quicksand:wght@400;500;600;700&family=Orbitron:wght@500;600;700&family=Space+Grotesk:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
 
 :root {
   color-scheme: light dark;
@@ -237,18 +237,41 @@ body {
    ============================================================ */
 
 .app-shell {
+  /* Palette tokens — legacy names, still used by the header chrome. */
   --text-primary: #ffffff;
   --text-secondary: #e0e0e0;
   --glass-bg: rgba(30, 30, 35, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  /* --bg-url is set inline by Dashboard.tsx from the user's profile; falls
-     back to the marble preset. */
+
+  /* Widget-specific tokens — each preset overrides these in the
+     data-theme blocks below. Defaults mirror the marble look. */
+  --widget-bg: rgba(30, 30, 35, 0.6);
+  --widget-border: rgba(255, 255, 255, 0.1);
+  --widget-radius: 24px;
+  --widget-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --widget-text: #ffffff;
+  --widget-text-dim: rgba(255, 255, 255, 0.65);
+  --widget-backdrop-blur: 12px;
+  --widget-input-bg: rgba(0, 0, 0, 0.3);
+  --widget-input-border: rgba(255, 255, 255, 0.18);
+  --widget-item-bg: rgba(255, 255, 255, 0.04);
+  --widget-item-bg-hover: rgba(255, 255, 255, 0.08);
+
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Inter', system-ui, sans-serif;
+  --font-accent: 'Playfair Display', Georgia, serif;
+
+  --accent-primary: #6366f1;
+  --accent-primary-hover: #4f46e5;
+
+  /* --bg-url is set inline by Dashboard.tsx; falls back to the marble
+     preset when the user's style is CSS-driven (e.g. brown). */
   --bg-url: url('/background.png');
 
   min-height: 100vh;
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
   background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
@@ -256,6 +279,113 @@ body {
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
+}
+
+/* ============================================================
+   Per-theme widget tokens
+   Each preset overrides the --widget-* vars so the whole dashboard
+   restyles in one place. Custom URLs still hit a preset's
+   data-theme block — only the background image differs.
+   ============================================================ */
+
+/* Pastel — cute bubble look, light pastel widget panels, rounded
+   pill corners, soft shadows, Quicksand rounded sans. */
+.app-shell[data-theme='pastel'] {
+  --widget-bg: rgba(255, 252, 250, 0.78);
+  --widget-border: rgba(255, 190, 215, 0.55);
+  --widget-radius: 28px;
+  --widget-shadow: 0 10px 30px rgba(255, 150, 190, 0.22);
+  --widget-text: #4a2952;
+  --widget-text-dim: rgba(74, 41, 82, 0.7);
+  --widget-backdrop-blur: 20px;
+  --widget-input-bg: rgba(255, 255, 255, 0.75);
+  --widget-input-border: rgba(180, 120, 150, 0.35);
+  --widget-item-bg: rgba(255, 200, 220, 0.18);
+  --widget-item-bg-hover: rgba(255, 200, 220, 0.35);
+  --font-body: 'Quicksand', system-ui, sans-serif;
+  --font-heading: 'Quicksand', system-ui, sans-serif;
+  --font-accent: 'Quicksand', system-ui, sans-serif;
+  --accent-primary: #ff87b7;
+  --accent-primary-hover: #e56aa1;
+}
+
+/* Metallic — sharp, futuristic. Small corners, steel-tinted panels,
+   Orbitron display / Space Grotesk body, cyan accent. */
+.app-shell[data-theme='metallic'] {
+  --widget-bg: rgba(30, 38, 52, 0.78);
+  --widget-border: rgba(180, 200, 225, 0.22);
+  --widget-radius: 8px;
+  --widget-shadow: 0 6px 24px rgba(40, 70, 110, 0.45);
+  --widget-text: #e6edf5;
+  --widget-text-dim: rgba(230, 237, 245, 0.68);
+  --widget-backdrop-blur: 14px;
+  --widget-input-bg: rgba(10, 15, 25, 0.6);
+  --widget-input-border: rgba(180, 200, 225, 0.25);
+  --widget-item-bg: rgba(150, 180, 220, 0.07);
+  --widget-item-bg-hover: rgba(150, 180, 220, 0.14);
+  --font-body: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-heading: 'Orbitron', 'Inter', system-ui, sans-serif;
+  --font-accent: 'Orbitron', 'Inter', sans-serif;
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #0284c7;
+}
+
+/* Brown — minimalist aesthetic. Warm cream panels, subtle borders,
+   EB Garamond serif for editorial feel, muted brown accents. */
+.app-shell[data-theme='brown'] {
+  --widget-bg: rgba(250, 240, 224, 0.82);
+  --widget-border: rgba(112, 85, 66, 0.28);
+  --widget-radius: 14px;
+  --widget-shadow: 0 4px 20px rgba(58, 40, 28, 0.18);
+  --widget-text: #2d1d10;
+  --widget-text-dim: rgba(45, 29, 16, 0.65);
+  --widget-backdrop-blur: 6px;
+  --widget-input-bg: rgba(255, 248, 236, 0.7);
+  --widget-input-border: rgba(112, 85, 66, 0.3);
+  --widget-item-bg: rgba(120, 90, 70, 0.08);
+  --widget-item-bg-hover: rgba(120, 90, 70, 0.15);
+  --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --font-heading: 'EB Garamond', Georgia, serif;
+  --font-accent: 'EB Garamond', Georgia, serif;
+  --accent-primary: #8b6f5c;
+  --accent-primary-hover: #6b4f42;
+}
+
+/* ============================================================
+   Form controls inside widgets pick up widget-level tokens so
+   light themes (pastel, brown) get readable inputs and dark
+   themes keep their contrast.
+   ============================================================ */
+.glass-panel input[type='text'],
+.glass-panel input[type='number'],
+.glass-panel input[type='time'],
+.glass-panel input[type='date'],
+.glass-panel input[type='url'],
+.glass-panel input[type='email'],
+.glass-panel input[type='password'],
+.glass-panel input[type='search'],
+.glass-panel select,
+.glass-panel textarea {
+  color: var(--widget-text);
+  background: var(--widget-input-bg);
+  border-color: var(--widget-input-border);
+  font-family: var(--font-body);
+}
+
+/* Common list items inside widgets (pinned notes, tasks, note rows,
+   launchpad categories) use the themed item tint so they read right
+   on both dark-on-light and light-on-dark palettes. */
+.pinned-note,
+.task-item,
+.note-row,
+.launchpad-category {
+  background: var(--widget-item-bg);
+}
+
+.task-item:hover,
+.note-row:hover,
+.launchpad-link:hover {
+  background: var(--widget-item-bg-hover);
 }
 
 .app-shell__overlay {
@@ -403,14 +533,15 @@ body {
    ============================================================ */
 
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
+  background: var(--widget-bg);
+  backdrop-filter: blur(var(--widget-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--widget-backdrop-blur));
+  border: 1px solid var(--widget-border);
+  border-radius: var(--widget-radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--widget-shadow);
+  color: var(--widget-text);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .widget {
@@ -441,17 +572,19 @@ body {
 }
 
 .minimal-quote {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-accent);
   font-size: clamp(1rem, 2vw, 1.5rem);
   font-style: italic;
+  color: var(--widget-text);
   opacity: 0.9;
   margin: 0;
   transition: opacity 0.4s ease;
 }
 
 .minimal-author {
+  font-family: var(--font-body);
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--widget-text-dim);
   margin: 0.5rem 0 0;
   letter-spacing: 1px;
   transition: opacity 0.4s ease;
@@ -460,7 +593,7 @@ body {
 .quote-refresh-btn {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--widget-text-dim);
   cursor: pointer;
   font-size: 1.25rem;
   margin-top: 0.5rem;
@@ -469,7 +602,7 @@ body {
 
 .quote-refresh-btn:hover {
   transform: rotate(180deg);
-  color: var(--text-primary);
+  color: var(--widget-text);
 }
 
 /* ============================================================
@@ -554,9 +687,11 @@ body {
    ============================================================ */
 
 .widget-title {
+  font-family: var(--font-heading);
   font-size: 1.1rem;
   font-weight: 500;
-  border-bottom: 1px solid var(--glass-border);
+  color: var(--widget-text);
+  border-bottom: 1px solid var(--widget-border);
   padding-bottom: 0.5rem;
   margin: 0 0 1rem;
 }
@@ -578,7 +713,7 @@ body {
 }
 
 .widget-empty {
-  opacity: 0.55;
+  color: var(--widget-text-dim);
   font-size: 0.9rem;
   margin: 0.75rem 0;
   font-style: italic;
@@ -587,7 +722,7 @@ body {
 .primary-btn {
   appearance: none;
   border: 0;
-  background: #6366f1;
+  background: var(--accent-primary, #6366f1);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -597,7 +732,7 @@ body {
 }
 
 .primary-btn:hover:not(:disabled) {
-  background: #4f46e5;
+  background: var(--accent-primary-hover, #4f46e5);
 }
 
 .primary-btn:disabled {
