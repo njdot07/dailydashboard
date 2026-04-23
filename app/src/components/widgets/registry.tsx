@@ -25,7 +25,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Quote',
     Component: Quote,
     defaultSize: { w: 12, h: 2 },
-    minSize: { w: 4, h: 2 },
+    minSize: { w: 3, h: 2 },
     singleton: true,
     settingsSchema: {
       autoRefreshSeconds: {
@@ -44,7 +44,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Status Bar',
     Component: StatusBar,
     defaultSize: { w: 12, h: 2 },
-    minSize: { w: 4, h: 2 },
+    minSize: { w: 3, h: 2 },
     singleton: true,
   },
   clock: {
@@ -52,7 +52,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Clock',
     Component: Clock,
     defaultSize: { w: 3, h: 5 },
-    minSize: { w: 3, h: 5 },
+    // Clock is now SVG-based and scales to its container, so it can go small.
+    minSize: { w: 2, h: 2 },
     singleton: true,
   },
   'quick-tasks': {
@@ -60,7 +61,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Today',
     Component: QuickTasks,
     defaultSize: { w: 3, h: 4 },
-    minSize: { w: 3, h: 3 },
+    minSize: { w: 2, h: 3 },
     // Duplicatable — users can have several task boards (e.g. "Work",
     // "Personal"). StatusBar + Calendar merge tasks across all instances.
     singleton: false,
@@ -87,7 +88,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Calendar',
     Component: Calendar,
     defaultSize: { w: 6, h: 6 },
-    minSize: { w: 4, h: 5 },
+    // Calendar needs at least 4 cols to keep the 7-day weekday row legible.
+    minSize: { w: 4, h: 4 },
     singleton: true,
     settingsSchema: {
       weekStartsOn: {
@@ -111,7 +113,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Pinned Notes',
     Component: PinnedNotes,
     defaultSize: { w: 3, h: 4 },
-    minSize: { w: 3, h: 3 },
+    minSize: { w: 2, h: 2 },
     // Duplicatable — users can have several boards (e.g. "Work", "Personal")
     // and rename each via the settings gear.
     singleton: false,
@@ -121,7 +123,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Launchpad',
     Component: Launchpad,
     defaultSize: { w: 3, h: 5 },
-    minSize: { w: 3, h: 3 },
+    minSize: { w: 2, h: 2 },
     singleton: false,
     settingsSchema: {
       openInNewTab: {
@@ -136,7 +138,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     title: 'Notes',
     Component: NotesLibrary,
     defaultSize: { w: 6, h: 4 },
-    minSize: { w: 4, h: 3 },
+    minSize: { w: 2, h: 2 },
     singleton: false,
   },
 };

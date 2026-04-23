@@ -523,111 +523,30 @@ body {
 }
 
 /* ============================================================
-   Clock widget
+   Clock widget (all-SVG, fluidly responsive)
    ============================================================ */
 
-/* The clock widget is a normal rectangular glass panel — the only circular
-   thing is the analog-clock element itself, centered inside. Earlier versions
-   had aspect-ratio:1/1 + border-radius:50% on the widget which stretched into
-   an oval whenever the grid cell wasn't square. */
+/* The clock is a plain rectangular glass panel containing a single SVG
+   that fills the available area and stays square via aspect-ratio. The
+   SVG itself uses a viewBox so every element scales with the container —
+   2×2 cells, 5×5 cells, whatever. */
 .widget--clock {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem;
+  padding: 0.5rem;
   overflow: hidden;
-  min-height: 270px;
+  /* No more fixed min-height — the SVG scales. Minimum sizing is
+     enforced by the registry's minSize (2×2 grid cells). */
 }
 
-.analog-clock {
-  position: relative;
-  width: 250px;
-  height: 250px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.1);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-  flex-shrink: 0;
-}
-
-.center-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
-  background: var(--text-primary);
-  border-radius: 50%;
-  z-index: 10;
-}
-
-.hand {
-  position: absolute;
-  bottom: 50%;
-  left: 50%;
-  transform-origin: bottom center;
-  background: var(--text-primary);
-  border-radius: 4px;
-  z-index: 5;
-  transition: transform 0.05s linear;
-}
-
-.hour-hand {
-  width: 6px;
-  height: 60px;
-  margin-left: -3px;
-  background: var(--text-secondary);
-}
-
-.minute-hand {
-  width: 4px;
-  height: 90px;
-  margin-left: -2px;
-}
-
-.second-hand {
-  width: 2px;
-  height: 100px;
-  margin-left: -1px;
-  background: #ff5252;
-}
-
-.clock-marker {
-  position: absolute;
-  width: 2px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.3);
-  top: 5px;
-  left: 50%;
-  margin-left: -1px;
-  transform-origin: 1px 120px;
-}
-
-.clock-marker.major {
-  width: 4px;
-  height: 15px;
-  margin-left: -2px;
-  background: rgba(255, 255, 255, 0.6);
-  transform-origin: 2px 120px;
-}
-
-.clock-number {
-  position: absolute;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.current-time-dot {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: #00e676;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 10px rgba(0, 230, 118, 0.8), 0 0 20px rgba(0, 230, 118, 0.4);
-  z-index: 25;
-  pointer-events: none;
+.analog-clock-svg {
+  /* Fill whatever square fits inside the padded glass panel. */
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  overflow: visible;
 }
 
 /* ============================================================
@@ -1861,23 +1780,8 @@ body[data-ui-mode='layout'] .widget-shell:active {
 }
 
 /* ============================================================
-   Clock task-arc layer + task-color swatches + day navigator
+   Task-color swatches + QuickTasks day navigator
    ============================================================ */
-
-/* SVG layer sits above the inset-shadow background and clock face
-   but below the hands. Coordinate space is -1..1 (unit circle).
-   overflow:visible lets arcs drawn at r>1 extend past the clock border
-   into the surrounding widget space. */
-.clock-task-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none;
-  overflow: visible;
-}
 
 /* QuickTasks day navigator */
 .day-nav {
