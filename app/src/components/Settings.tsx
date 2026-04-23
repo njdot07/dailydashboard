@@ -4,6 +4,7 @@ import { useDashboardStore } from '../stores/dashboardStore';
 import { WIDGET_REGISTRY } from './widgets/registry';
 import { Modal } from './Modal';
 import { SecretsSection } from './SecretsSection';
+import { LegacyImportSection } from './LegacyImportSection';
 import {
   THEME_PRESETS,
   isCustomThemeValue,
@@ -215,6 +216,9 @@ export function Settings({ open, onClose }: SettingsProps) {
 
         {/* -------- Secret Manager -------- */}
         <SecretsSection />
+
+        {/* -------- Legacy import -------- */}
+        <LegacyImportSection />
 
         {/* -------- Account -------- */}
         <section className="settings-section">

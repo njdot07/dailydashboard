@@ -2307,3 +2307,82 @@ body[data-ui-mode='move'] .widget-shell:active {
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(0, 0, 0, 0.25);
 }
+
+/* ============================================================
+   Legacy import section
+   ============================================================ */
+
+.legacy-import__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.legacy-import__field span {
+  opacity: 0.7;
+}
+
+.legacy-import__field textarea {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.legacy-import__field textarea:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.legacy-import__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.legacy-import__radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.legacy-import__radio input[type='radio'] {
+  accent-color: #6366f1;
+  margin-top: 0.15rem;
+}
+
+.legacy-import__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.legacy-import__preview {
+  padding: 0.75rem 0.9rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #fff;
+  margin-top: 0.35rem;
+}
+
+.legacy-import__preview ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.legacy-import__preview li {
+  margin: 0.1rem 0;
+}

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Export legacy dashboard data</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      max-width: 820px;
+      margin-inline: auto;
+      line-height: 1.5;
+    }
+    h1 { margin-top: 0; }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid rgba(127, 127, 127, 0.35);
+      background: rgba(127, 127, 127, 0.08);
+    }
+    button {
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      background: #6366f1;
+      color: white;
+    }
+    button:hover { background: #4f46e5; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .bar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+    .note { color: rgba(127, 127, 127, 0.95); font-size: 0.85rem; }
+    .warn { color: #b45309; }
+    .ok { color: #15803d; }
+  </style>
+</head>
+<body>
+  <h1>Export legacy dashboard data</h1>
+  <p>
+    This tiny page reads your old Daily Dashboard data out of this browser's
+    localStorage so you can import it into the new React+Supabase version.
+  </p>
+  <ol>
+    <li>Make sure you're viewing this page at
+      <code id="origin">http://localhost:8080/legacy-export.html</code>
+      (same origin your old dashboard used).</li>
+    <li>Click <b>Copy to clipboard</b> below.</li>
+    <li>Paste it into the new app at <b>Settings → Import legacy data</b>.</li>
+  </ol>
+
+  <div class="bar">
+    <button id="copy">Copy to clipboard</button>
+    <button id="download">Download JSON</button>
+    <span id="status" class="note"></span>
+  </div>
+
+  <textarea id="output" readonly></textarea>
+
+  <p class="note">
+    Nothing leaves your browser from this page. The data is just sitting in
+    localStorage under the key <code>fs_user_data</code>; this page only reads it.
+  </p>
+
+  <script>
+    const out = document.getElementById('output');
+    const status = document.getElementById('status');
+    const originCell = document.getElementById('origin');
+    originCell.textContent = location.origin + location.pathname;
+
+    let raw = null;
+    try {
+      raw = localStorage.getItem('fs_user_data');
+    } catch (e) {
+      status.textContent = 'Could not read localStorage: ' + e;
+      status.className = 'note warn';
+    }
+
+    if (!raw) {
+      out.value = '(no data found under localStorage.fs_user_data — are you on the same browser and same origin as your old dashboard?)';
+      status.textContent = 'No legacy data detected.';
+      status.className = 'note warn';
+      document.getElementById('copy').disabled = true;
+      document.getElementById('download').disabled = true;
+    } else {
+      out.value = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        const dates = Object.keys(parsed).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+        const pinned = (parsed.pinnedNotes || []).length;
+        const launchpad = ((parsed.settings || {}).launchpadCategories || []).length;
+        let tasks = 0;
+        for (const d of dates) tasks += ((parsed[d] || {}).tasks || []).length;
+        status.textContent =
+          `Loaded: ${pinned} pinned note(s), ${launchpad} launchpad categor${launchpad === 1 ? 'y' : 'ies'}, ${tasks} task(s) across ${dates.length} date(s).`;
+        status.className = 'note ok';
+      } catch {
+        status.textContent = 'Found data, but it is not valid JSON — copy it anyway and paste into the import box.';
+        status.className = 'note warn';
+      }
+    }
+
+    document.getElementById('copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(out.value);
+        status.textContent = 'Copied. Paste it in Settings → Import legacy data.';
+        status.className = 'note ok';
+      } catch {
+        out.select();
+        document.execCommand('copy');
+        status.textContent = 'Copied (fallback).';
+        status.className = 'note ok';
+      }
+    });
+
+    document.getElementById('download').addEventListener('click', () => {
+      const blob = new Blob([out.value], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dashboard-legacy-export.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>
