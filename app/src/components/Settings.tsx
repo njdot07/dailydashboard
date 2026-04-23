@@ -1,9 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { WIDGET_REGISTRY } from './widgets/registry';
 import { Modal } from './Modal';
 import { SecretsSection } from './SecretsSection';
+import {
+  THEME_PRESETS,
+  isCustomThemeValue,
+  resolveThemeUrl,
+} from '../lib/theme';
 
 type ToneKey = 'professional' | 'motivational' | 'minimalist' | 'friendly';
 const TONES: ToneKey[] = ['professional', 'motivational', 'minimalist', 'friendly'];
@@ -47,6 +52,40 @@ export function Settings({ open, onClose }: SettingsProps) {
 
   const setTone = async (next: ToneKey) => {
     await updateProfile({ persona_tone: next });
+  };
+
+  // Theme: either a preset id or a custom URL stored in theme_preference.
+  const savedTheme = profile?.theme_preference ?? 'default';
+  const savedIsCustom = isCustomThemeValue(savedTheme);
+  const [customUrlDraft, setCustomUrlDraft] = useState(
+    savedIsCustom ? savedTheme : '',
+  );
+  const [themeError, setThemeError] = useState<string | null>(null);
+  const [applyingCustom, setApplyingCustom] = useState(false);
+
+  // Keep the draft in sync if the profile changes underneath us (e.g. after
+  // a successful save) so the input reflects what's actually applied.
+  useEffect(() => {
+    if (savedIsCustom) setCustomUrlDraft(savedTheme);
+  }, [savedTheme, savedIsCustom]);
+
+  const setPresetTheme = async (presetId: string) => {
+    setThemeError(null);
+    await updateProfile({ theme_preference: presetId });
+  };
+
+  const applyCustomTheme = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = customUrlDraft.trim();
+    if (!trimmed) return;
+    if (!isCustomThemeValue(trimmed)) {
+      setThemeError('Paste an http(s):// or data: URL.');
+      return;
+    }
+    setThemeError(null);
+    setApplyingCustom(true);
+    await updateProfile({ theme_preference: trimmed });
+    setApplyingCustom(false);
   };
 
   const toggleWidget = (type: string) => {
@@ -95,6 +134,67 @@ export function Settings({ open, onClose }: SettingsProps) {
         {/* -------- Appearance -------- */}
         <section className="settings-section">
           <h3 className="settings-section-title">Appearance</h3>
+
+          <div className="settings-field">
+            <span>Background</span>
+            <div className="theme-presets">
+              {THEME_PRESETS.map((preset) => {
+                const active = !savedIsCustom && savedTheme === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`theme-preset${active ? ' theme-preset--active' : ''}`}
+                    onClick={() => setPresetTheme(preset.id)}
+                    style={{ backgroundImage: `url("${preset.url}")` }}
+                    title={preset.label}
+                  >
+                    <span className="theme-preset__label">{preset.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <form className="settings-field" onSubmit={applyCustomTheme}>
+            <span>Custom background URL</span>
+            <div className="settings-inline-row">
+              <input
+                type="url"
+                value={customUrlDraft}
+                onChange={(e) => setCustomUrlDraft(e.target.value)}
+                placeholder="https://… or data:image/…"
+              />
+              <button
+                type="submit"
+                className="primary-btn small-btn"
+                disabled={
+                  applyingCustom ||
+                  !customUrlDraft.trim() ||
+                  customUrlDraft.trim() === savedTheme
+                }
+              >
+                {applyingCustom ? 'Applying…' : 'Apply'}
+              </button>
+            </div>
+            {themeError && <div className="auth-error">{themeError}</div>}
+            {savedIsCustom && (
+              <div className="theme-preview">
+                <span>Current custom background:</span>
+                <img
+                  src={resolveThemeUrl(savedTheme)}
+                  alt=""
+                  className="theme-preview__img"
+                />
+              </div>
+            )}
+            <small className="settings-section-hint">
+              Paste the direct image URL (ending in .jpg / .png / .webp) or a
+              data: URL. Works with anything your browser can load — Unsplash
+              links, personal image host, etc.
+            </small>
+          </form>
+
           <label className="settings-field">
             <span>Persona tone</span>
             <select

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
@@ -8,6 +8,7 @@ import { Header } from './Header';
 import { WidgetShell } from './WidgetShell';
 import { Settings } from './Settings';
 import { getWidgetEntry } from './widgets/registry';
+import { resolveThemeUrl } from '../lib/theme';
 
 const ResponsiveGridLayout = WidthProvider(GridLayout);
 
@@ -16,7 +17,7 @@ const GRID_ROW_HEIGHT = 48;
 const GRID_MARGIN: [number, number] = [14, 14];
 
 export function Dashboard() {
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const loadDashboard = useDashboardStore((s) => s.loadDashboard);
   const reset = useDashboardStore((s) => s.reset);
   const loading = useDashboardStore((s) => s.loading);
@@ -26,6 +27,13 @@ export function Dashboard() {
   const updatePositions = useDashboardStore((s) => s.updatePositions);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Resolve the user's picked background (preset id or custom URL) into a
+  // CSS url() and hand it to .app-shell via a custom property.
+  const backgroundUrl = resolveThemeUrl(profile?.theme_preference);
+  const shellStyle = {
+    '--bg-url': `url("${backgroundUrl}")`,
+  } as CSSProperties;
 
   useEffect(() => {
     if (!user) return;
@@ -90,7 +98,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={shellStyle}>
       <div className="app-shell__overlay" aria-hidden />
       <Header onOpenSettings={() => setSettingsOpen(true)} />
       <main className="app-main">

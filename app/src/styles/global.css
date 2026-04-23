@@ -242,11 +242,14 @@ body {
   --glass-bg: rgba(30, 30, 35, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  /* --bg-url is set inline by Dashboard.tsx from the user's profile; falls
+     back to the marble preset. */
+  --bg-url: url('/background.png');
 
   min-height: 100vh;
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
-  background-image: url('/background.png');
+  background-image: var(--bg-url);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -2239,4 +2242,68 @@ body[data-ui-mode='move'] .widget-shell:active {
   padding-top: 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin-top: 0.25rem;
+}
+
+/* ============================================================
+   Theme presets + custom background preview
+   ============================================================ */
+
+.theme-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.theme-preset {
+  appearance: none;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  aspect-ratio: 16 / 10;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.12s;
+}
+
+.theme-preset:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.theme-preset--active {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+}
+
+.theme-preset__label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.72rem;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  text-align: left;
+}
+
+.theme-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 0.35rem;
+}
+
+.theme-preview__img {
+  width: 64px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
 }
