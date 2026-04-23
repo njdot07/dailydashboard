@@ -7,15 +7,13 @@ import {
 
 const MODE_LABELS: Record<UIMode, string> = {
   view: 'View',
-  move: 'Move',
-  resize: 'Resize',
+  layout: 'Layout',
   edit: 'Edit',
 };
 
 const MODE_HINTS: Record<UIMode, string> = {
   view: 'Read-only — interact with widget content',
-  move: 'Drag widgets to rearrange',
-  resize: 'Resize widgets from their corners',
+  layout: 'Drag and resize widgets to rearrange',
   edit: 'Edit widget contents and remove widgets',
 };
 

@@ -8,7 +8,7 @@ import { Header } from './Header';
 import { WidgetShell } from './WidgetShell';
 import { Settings } from './Settings';
 import { getWidgetEntry } from './widgets/registry';
-import { resolveThemeUrl } from '../lib/theme';
+import { resolveThemeUrl, resolveThemeId } from '../lib/theme';
 
 const ResponsiveGridLayout = WidthProvider(GridLayout);
 
@@ -28,12 +28,15 @@ export function Dashboard() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Resolve the user's picked background (preset id or custom URL) into a
-  // CSS url() and hand it to .app-shell via a custom property.
+  // Resolve the user's picked background. Image-based themes (marble, pastel,
+  // metallic, custom URLs) set --bg-url which the default .app-shell rule
+  // consumes. CSS-driven themes (brown) return null and rely on the
+  // data-theme attribute for their styling.
   const backgroundUrl = resolveThemeUrl(profile?.theme_preference);
-  const shellStyle = {
-    '--bg-url': `url("${backgroundUrl}")`,
-  } as CSSProperties;
+  const themeId = resolveThemeId(profile?.theme_preference);
+  const shellStyle = backgroundUrl
+    ? ({ '--bg-url': `url("${backgroundUrl}")` } as CSSProperties)
+    : undefined;
 
   useEffect(() => {
     if (!user) return;
@@ -69,8 +72,8 @@ export function Dashboard() {
 
   useTaskReminders();
 
-  const isDraggable = uiMode === 'move';
-  const isResizable = uiMode === 'resize';
+  const isDraggable = uiMode === 'layout';
+  const isResizable = uiMode === 'layout';
 
   const rglLayout: Layout[] = useMemo(
     () =>
@@ -98,7 +101,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="app-shell" style={shellStyle}>
+    <div className="app-shell" data-theme={themeId} style={shellStyle}>
       <div className="app-shell__overlay" aria-hidden />
       <Header onOpenSettings={() => setSettingsOpen(true)} />
       <main className="app-main">

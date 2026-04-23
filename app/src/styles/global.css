@@ -270,6 +270,28 @@ body {
   z-index: 0;
 }
 
+/* Brown theme is CSS-driven — no raster background image.
+   A warm brown gradient underlayer, with a tiled SVG pattern of cute
+   emoji (teddy bears, stars, flowers, hearts) at low opacity on top. */
+.app-shell[data-theme='brown'] {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'><g font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'><text x='40' y='70' font-size='38' opacity='0.22'>🧸</text><text x='220' y='55' font-size='28' opacity='0.18'>⭐</text><text x='320' y='140' font-size='36' opacity='0.2'>🧸</text><text x='90' y='180' font-size='26' opacity='0.18'>🌸</text><text x='200' y='215' font-size='30' opacity='0.18'>💕</text><text x='30' y='290' font-size='32' opacity='0.2'>🧸</text><text x='280' y='310' font-size='26' opacity='0.17'>✨</text><text x='140' y='360' font-size='30' opacity='0.18'>🌸</text><text x='350' y='400' font-size='28' opacity='0.18'>⭐</text></g></svg>"),
+    linear-gradient(135deg, #a68373 0%, #6b4f42 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 420px 420px, cover;
+  background-attachment: fixed, fixed;
+}
+
+/* On the brown theme the scene is lighter than the marble default, so the
+   darkening overlay ruins the contrast. Dial it way down. */
+.app-shell[data-theme='brown'] .app-shell__overlay {
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+}
+
 .app-shell > *:not(.app-shell__overlay) {
   position: relative;
   z-index: 1;
@@ -360,9 +382,7 @@ body {
 
 .app-main {
   padding: 1.5rem 2rem 4rem;
-  max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
 }
 
 .app-status {
@@ -1415,8 +1435,7 @@ input.launchpad-category-name {
    ============================================================ */
 
 .dashboard-grid-rgl {
-  margin: 0 auto;
-  max-width: 1400px;
+  width: 100%;
   min-height: 600px;
 }
 
@@ -1553,13 +1572,13 @@ input.launchpad-category-name {
   border-bottom-right-radius: 18px;
 }
 
-body[data-ui-mode='resize'] .react-resizable-handle {
+body[data-ui-mode='layout'] .react-resizable-handle {
   opacity: 1;
   pointer-events: auto;
   background: rgba(99, 102, 241, 0.18) !important;
 }
 
-body[data-ui-mode='resize'] .react-resizable-handle:hover {
+body[data-ui-mode='layout'] .react-resizable-handle:hover {
   background: rgba(99, 102, 241, 0.35) !important;
 }
 
@@ -1668,27 +1687,16 @@ body[data-ui-mode='resize'] .react-resizable-handle:hover {
    prevents accidentally toggling checkboxes or typing while positioning.
    Drag handle and resize corners stay interactive because they're siblings
    of .widget-shell__body, not children. */
-body[data-ui-mode='move'] .widget-shell__body,
-body[data-ui-mode='resize'] .widget-shell__body {
+body[data-ui-mode='layout'] .widget-shell__body {
   pointer-events: none;
   user-select: none;
-}
-
-/* Subtle visual cue that the mode affects content */
-body[data-ui-mode='move'] .widget-shell,
-body[data-ui-mode='resize'] .widget-shell {
+  opacity: 0.75;
   transition: opacity 0.15s;
 }
 
-body[data-ui-mode='move'] .widget-shell__body,
-body[data-ui-mode='resize'] .widget-shell__body {
-  opacity: 0.75;
-}
-
-/* Slight dashed outline around every widget in move/resize so the
-   targets are obvious. */
-body[data-ui-mode='move'] .widget-shell::before,
-body[data-ui-mode='resize'] .widget-shell::before {
+/* Dashed outline around every widget in layout mode so the targets
+   are obvious. */
+body[data-ui-mode='layout'] .widget-shell::before {
   content: '';
   position: absolute;
   inset: -2px;
@@ -1698,12 +1706,11 @@ body[data-ui-mode='resize'] .widget-shell::before {
   z-index: 1;
 }
 
-/* Cursors */
-body[data-ui-mode='move'] .widget-shell {
+body[data-ui-mode='layout'] .widget-shell {
   cursor: grab;
 }
 
-body[data-ui-mode='move'] .widget-shell:active {
+body[data-ui-mode='layout'] .widget-shell:active {
   cursor: grabbing;
 }
 

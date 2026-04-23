@@ -141,13 +141,17 @@ export function Settings({ open, onClose }: SettingsProps) {
             <div className="theme-presets">
               {THEME_PRESETS.map((preset) => {
                 const active = !savedIsCustom && savedTheme === preset.id;
+                const style: React.CSSProperties = preset.url
+                  ? { backgroundImage: `url("${preset.url}")` }
+                  : { background: preset.previewBg };
                 return (
                   <button
                     key={preset.id}
                     type="button"
                     className={`theme-preset${active ? ' theme-preset--active' : ''}`}
+                    data-preset={preset.id}
                     onClick={() => setPresetTheme(preset.id)}
-                    style={{ backgroundImage: `url("${preset.url}")` }}
+                    style={style}
                     title={preset.label}
                   >
                     <span className="theme-preset__label">{preset.label}</span>
@@ -183,7 +187,7 @@ export function Settings({ open, onClose }: SettingsProps) {
               <div className="theme-preview">
                 <span>Current custom background:</span>
                 <img
-                  src={resolveThemeUrl(savedTheme)}
+                  src={resolveThemeUrl(savedTheme) ?? ''}
                   alt=""
                   className="theme-preview__img"
                 />

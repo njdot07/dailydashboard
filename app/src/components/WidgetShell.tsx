@@ -42,7 +42,7 @@ export const WidgetShell = forwardRef<HTMLDivElement, WidgetShellProps>(
       entry?.settingsSchema !== undefined &&
       Object.keys(entry.settingsSchema).length > 0;
 
-    const showDragHandle = uiMode === 'move';
+    const showDragHandle = uiMode === 'layout';
     const showEditButtons = uiMode === 'edit';
 
     return (

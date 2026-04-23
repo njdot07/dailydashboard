@@ -16,8 +16,8 @@ const client = supabase as SupabaseClient;
 const SAVE_DEBOUNCE_MS = 1000;
 const EMPTY_LAYOUT: LayoutConfig = { widgets: [], widgetData: {} };
 
-export type UIMode = 'view' | 'move' | 'resize' | 'edit';
-export const UI_MODES: UIMode[] = ['view', 'move', 'resize', 'edit'];
+export type UIMode = 'view' | 'layout' | 'edit';
+export const UI_MODES: UIMode[] = ['view', 'layout', 'edit'];
 
 interface GridPosition {
   i: string;
