@@ -152,7 +152,7 @@ export function Dashboard() {
                   key={w.i}
                   widgetId={w.i}
                   widgetType={w.type}
-                  title={entry.title}
+                  title={w.title ?? entry.title}
                   Component={entry.Component}
                 />
               );

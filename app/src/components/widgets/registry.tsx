@@ -61,7 +61,9 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     Component: QuickTasks,
     defaultSize: { w: 3, h: 4 },
     minSize: { w: 3, h: 3 },
-    singleton: true,
+    // Duplicatable — users can have several task boards (e.g. "Work",
+    // "Personal"). StatusBar + Calendar merge tasks across all instances.
+    singleton: false,
     settingsSchema: {
       defaultDuration: {
         type: 'number',
@@ -110,7 +112,9 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     Component: PinnedNotes,
     defaultSize: { w: 3, h: 4 },
     minSize: { w: 3, h: 3 },
-    singleton: true,
+    // Duplicatable — users can have several boards (e.g. "Work", "Personal")
+    // and rename each via the settings gear.
+    singleton: false,
   },
   launchpad: {
     type: 'launchpad',
@@ -118,7 +122,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     Component: Launchpad,
     defaultSize: { w: 3, h: 5 },
     minSize: { w: 3, h: 3 },
-    singleton: true,
+    singleton: false,
     settingsSchema: {
       openInNewTab: {
         type: 'boolean',
@@ -133,7 +137,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     Component: NotesLibrary,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 4, h: 3 },
-    singleton: true,
+    singleton: false,
   },
 };
 

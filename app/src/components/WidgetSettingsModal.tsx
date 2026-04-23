@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { getWidgetEntry } from './widgets/registry';
 import { Modal } from './Modal';
@@ -25,19 +25,31 @@ export function WidgetSettingsModal({
     s.layout.widgets.find((w) => w.i === widgetId),
   );
   const setWidgetSettings = useDashboardStore((s) => s.setWidgetSettings);
+  const setWidgetTitle = useDashboardStore((s) => s.setWidgetTitle);
 
   const entry = widget ? getWidgetEntry(widget.type) : undefined;
-  const schema: SettingsSchema | undefined = entry?.settingsSchema;
+  const schema: SettingsSchema = entry?.settingsSchema ?? {};
 
   const stored = (widget?.settings ?? {}) as Record<string, unknown>;
   const resolved = useMemo(
-    () => (schema ? resolveSettings(schema, stored) : {}),
+    () => resolveSettings(schema, stored),
     [schema, stored],
   );
 
-  if (!widget || !entry || !schema || Object.keys(schema).length === 0) {
-    return null;
-  }
+  // Local draft for the title input so we only persist on blur / save —
+  // avoids triggering a save + re-render on every keystroke.
+  const [titleDraft, setTitleDraft] = useState(widget?.title ?? '');
+  useEffect(() => {
+    setTitleDraft(widget?.title ?? '');
+  }, [widget?.title, open]);
+
+  if (!widget || !entry) return null;
+
+  const commitTitle = () => {
+    const next = titleDraft.trim();
+    if ((widget.title ?? '') === next) return;
+    setWidgetTitle(widgetId, next || null);
+  };
 
   const update = (key: string, value: unknown) => {
     setWidgetSettings(widgetId, { ...stored, [key]: value });
@@ -47,13 +59,27 @@ export function WidgetSettingsModal({
     setWidgetSettings(widgetId, defaultsFor(schema));
   };
 
+  const hasFields = Object.keys(schema).length > 0;
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={`${entry.title} settings`}
-    >
+    <Modal open={open} onClose={onClose} title={`${entry.title} settings`}>
       <div className="widget-settings-form">
+        <label className="ws-field">
+          <span className="ws-field__label">Title</span>
+          <input
+            type="text"
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={commitTitle}
+            placeholder={entry.title}
+          />
+          <small className="ws-field__hint">
+            Shown on the widget. Leave blank to use the default
+            ("{entry.title}"). Useful when you have more than one
+            {entry.singleton === false ? ` ${entry.title.toLowerCase()}` : ''}.
+          </small>
+        </label>
+
         {Object.entries(schema).map(([key, field]) => (
           <FieldRow
             key={key}
@@ -64,13 +90,20 @@ export function WidgetSettingsModal({
         ))}
 
         <div className="widget-settings-form__actions">
-          <button type="button" className="ghost-btn small-btn" onClick={reset}>
-            Reset to defaults
-          </button>
+          {hasFields ? (
+            <button type="button" className="ghost-btn small-btn" onClick={reset}>
+              Reset to defaults
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             className="primary-btn small-btn"
-            onClick={onClose}
+            onClick={() => {
+              commitTitle();
+              onClose();
+            }}
           >
             Done
           </button>
@@ -89,9 +122,6 @@ function FieldRow({
   value: unknown;
   onChange: (v: unknown) => void;
 }) {
-  // Narrow `value` through the same resolver the form uses so we never
-  // feed a bogus cached value into an input and trigger a controlled/
-  // uncontrolled warning.
   const safe = resolveSetting(field, value);
 
   switch (field.type) {

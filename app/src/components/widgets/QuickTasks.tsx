@@ -6,7 +6,7 @@ import { Modal } from '../Modal';
 import { todayKey, nowHM, dateKey } from '../../lib/date';
 import type { QuickTask } from '../../lib/types';
 
-const EMPTY = { tasks: {} as Record<string, QuickTask[]> };
+const EMPTY: { tasks: Record<string, QuickTask[]> } = { tasks: {} };
 
 export const TASK_COLORS = [
   '#6366f1', // indigo (default)
@@ -51,7 +51,7 @@ function formatDayLabel(key: string): string {
 }
 
 export function QuickTasks() {
-  const [data, setData] = useWidgetData('quick-tasks', EMPTY);
+  const [data, setData] = useWidgetData(EMPTY);
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const selectedDate = useDashboardStore((s) => s.selectedDate);
   const setSelectedDate = useDashboardStore((s) => s.setSelectedDate);

@@ -1,12 +1,14 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
 import { useWidgetSettings } from '../../hooks/useWidgetSettings';
+import { useWidgetContext } from '../WidgetContext';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import type { LaunchpadCategory, LaunchpadLink } from '../../lib/types';
 
-const EMPTY = { categories: [] as LaunchpadCategory[] };
+const EMPTY: { categories: LaunchpadCategory[] } = { categories: [] };
 
 export function Launchpad() {
-  const [data, setData] = useWidgetData('launchpad', EMPTY);
+  const [data, setData] = useWidgetData(EMPTY);
+  const { title } = useWidgetContext();
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const { settings } = useWidgetSettings();
   const openInNewTab = settings.openInNewTab as boolean;
@@ -68,7 +70,7 @@ export function Launchpad() {
 
   return (
     <div className="widget widget--launchpad glass-panel">
-      <h2 className="widget-title">Launchpad</h2>
+      <h2 className="widget-title">{title}</h2>
 
       {data.categories.length === 0 && !editMode && (
         <p className="widget-empty">

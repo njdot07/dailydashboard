@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { useWidgetContext } from '../WidgetContext';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import { Modal } from '../Modal';
 import type { Note } from '../../lib/types';
 
-const EMPTY = { notes: [] as Note[] };
+const EMPTY: { notes: Note[] } = { notes: [] };
 
 function preview(body: string, max = 90): string {
   const trimmed = body.trim();
@@ -26,7 +27,8 @@ function formatUpdated(iso: string): string {
 }
 
 export function NotesLibrary() {
-  const [data, setData] = useWidgetData('notes', EMPTY);
+  const [data, setData] = useWidgetData(EMPTY);
+  const { title } = useWidgetContext();
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const [editing, setEditing] = useState<Note | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -74,7 +76,7 @@ export function NotesLibrary() {
   return (
     <div className="widget widget--notes glass-panel">
       <div className="widget-header">
-        <h2 className="widget-title">Notes</h2>
+        <h2 className="widget-title">{title}</h2>
         <button
           type="button"
           className="primary-btn small-btn"

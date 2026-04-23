@@ -4,8 +4,9 @@ import { supabase } from '../lib/supabase';
 import type {
   LayoutConfig,
   DashboardStateRow,
-  WidgetDataShape,
+  WidgetDataMap,
   WidgetInstance,
+  QuickTask,
 } from '../lib/types';
 import { DEFAULT_WIDGETS } from '../lib/defaultLayout';
 import { getWidgetEntry } from '../components/widgets/registry';
@@ -19,6 +20,11 @@ const EMPTY_LAYOUT: LayoutConfig = { widgets: [], widgetData: {} };
 export type UIMode = 'view' | 'layout' | 'edit';
 export const UI_MODES: UIMode[] = ['view', 'layout', 'edit'];
 
+// Keys used by legacy (pre-duplication) schema when widgetData was keyed
+// by widget type instead of widget instance id. Used only during the
+// one-shot migration in loadDashboard.
+const LEGACY_TYPE_KEYS = ['pinned-notes', 'launchpad', 'quick-tasks', 'notes'];
+
 interface GridPosition {
   i: string;
   x: number;
@@ -31,8 +37,6 @@ interface DashboardStore {
   userId: string | null;
   layout: LayoutConfig;
   uiMode: UIMode;
-  // The date currently focused across widgets (QuickTasks list, Calendar
-  // selection). In-memory only — always defaults to today on reload.
   selectedDate: string;
   loading: boolean;
   saving: boolean;
@@ -40,14 +44,12 @@ interface DashboardStore {
 
   loadDashboard: (userId: string) => Promise<void>;
   setLayout: (layout: LayoutConfig) => void;
-  setWidgetData: <K extends keyof WidgetDataShape>(
-    key: K,
-    value: WidgetDataShape[K],
-  ) => void;
+  setWidgetData: (widgetId: string, value: unknown) => void;
   updatePositions: (positions: GridPosition[]) => void;
   addWidget: (type: string) => void;
   removeWidget: (i: string) => void;
   setWidgetSettings: (i: string, settings: Record<string, unknown>) => void;
+  setWidgetTitle: (i: string, title: string | null) => void;
   setUIMode: (mode: UIMode) => void;
   setSelectedDate: (date: string) => void;
   reset: () => void;
@@ -77,8 +79,6 @@ function findNextY(widgets: WidgetInstance[]): number {
   return Math.max(...widgets.map((w) => w.y + w.h));
 }
 
-// Bumps each widget's w/h up to the registry minimum so legacy layouts
-// from before registry sizing (e.g. quote saved at h=1) don't render cut off.
 function enforceMinSizes(widgets: WidgetInstance[]): {
   widgets: WidgetInstance[];
   changed: boolean;
@@ -96,6 +96,27 @@ function enforceMinSizes(widgets: WidgetInstance[]): {
     return w;
   });
   return { widgets: result, changed };
+}
+
+// One-shot migration of legacy type-keyed widgetData into instance-keyed
+// widgetData. For each type key we find the first widget of that type and
+// move the data to its instance id. Leftover type keys are dropped.
+function migrateTypeKeyedData(
+  widgets: WidgetInstance[],
+  data: WidgetDataMap,
+): { data: WidgetDataMap; changed: boolean } {
+  let changed = false;
+  const out: WidgetDataMap = { ...data };
+  for (const typeKey of LEGACY_TYPE_KEYS) {
+    if (!(typeKey in out)) continue;
+    const widget = widgets.find((w) => w.type === typeKey);
+    if (widget && out[widget.i] === undefined) {
+      out[widget.i] = out[typeKey];
+    }
+    delete out[typeKey];
+    changed = true;
+  }
+  return { data: out, changed };
 }
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
@@ -124,14 +145,19 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       const cfg = data.layout_config ?? EMPTY_LAYOUT;
       const needsSeed = !cfg.widgets || cfg.widgets.length === 0;
       const baseWidgets = needsSeed ? DEFAULT_WIDGETS : cfg.widgets;
-      const { widgets: finalWidgets, changed } = enforceMinSizes(baseWidgets);
+      const { widgets: sizedWidgets, changed: sizeChanged } =
+        enforceMinSizes(baseWidgets);
+      const { data: migratedData, changed: dataChanged } = migrateTypeKeyedData(
+        sizedWidgets,
+        cfg.widgetData ?? {},
+      );
       const hydrated: LayoutConfig = {
-        widgetData: {},
-        ...cfg,
-        widgets: finalWidgets,
+        widgets: sizedWidgets,
+        widgetData: migratedData,
+        gridCols: cfg.gridCols,
       };
       set({ layout: hydrated, loading: false });
-      if (needsSeed || changed) scheduleSave();
+      if (needsSeed || sizeChanged || dataChanged) scheduleSave();
       return;
     }
 
@@ -153,13 +179,13 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     scheduleSave();
   },
 
-  setWidgetData(key, value) {
+  setWidgetData(widgetId, value) {
     set((state) => ({
       layout: {
         ...state.layout,
         widgetData: {
           ...(state.layout.widgetData ?? {}),
-          [key]: value,
+          [widgetId]: value,
         },
       },
     }));
@@ -204,12 +230,20 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   },
 
   removeWidget(i) {
-    set((state) => ({
-      layout: {
-        ...state.layout,
-        widgets: state.layout.widgets.filter((w) => w.i !== i),
-      },
-    }));
+    set((state) => {
+      const nextData = { ...(state.layout.widgetData ?? {}) };
+      // Drop any per-instance data belonging to this widget. Shared type
+      // data (legacy) stays as-is to avoid accidentally nuking someone
+      // else's duplicate during a mid-migration state.
+      delete nextData[i];
+      return {
+        layout: {
+          ...state.layout,
+          widgets: state.layout.widgets.filter((w) => w.i !== i),
+          widgetData: nextData,
+        },
+      };
+    });
     scheduleSave();
   },
 
@@ -220,6 +254,25 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
         widgets: state.layout.widgets.map((w) =>
           w.i === i ? { ...w, settings } : w,
         ),
+      },
+    }));
+    scheduleSave();
+  },
+
+  setWidgetTitle(i, title) {
+    set((state) => ({
+      layout: {
+        ...state.layout,
+        widgets: state.layout.widgets.map((w) => {
+          if (w.i !== i) return w;
+          const next = { ...w };
+          if (title && title.trim()) {
+            next.title = title.trim();
+          } else {
+            delete next.title;
+          }
+          return next;
+        }),
       },
     }));
     scheduleSave();
@@ -250,5 +303,27 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   },
 }));
 
-// Convenience selectors
 export const selectIsEditMode = (s: DashboardStore) => s.uiMode === 'edit';
+
+// Merge today-grouped tasks across every QuickTasks widget in the layout.
+// StatusBar and Calendar use this so a user with multiple task boards sees
+// all upcoming items regardless of which board they sit in.
+export function selectMergedQuickTasks(
+  s: DashboardStore,
+): Record<string, QuickTask[]> {
+  const result: Record<string, QuickTask[]> = {};
+  const data = s.layout.widgetData ?? {};
+  for (const widget of s.layout.widgets) {
+    if (widget.type !== 'quick-tasks') continue;
+    const slice = data[widget.i] as
+      | { tasks?: Record<string, QuickTask[]> }
+      | undefined;
+    const tasks = slice?.tasks;
+    if (!tasks) continue;
+    for (const [date, arr] of Object.entries(tasks)) {
+      if (!Array.isArray(arr)) continue;
+      result[date] = [...(result[date] ?? []), ...arr];
+    }
+  }
+  return result;
+}

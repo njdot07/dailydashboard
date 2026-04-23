@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../../providers/UserProvider';
-import { useDashboardStore } from '../../stores/dashboardStore';
+import {
+  useDashboardStore,
+  selectMergedQuickTasks,
+} from '../../stores/dashboardStore';
 import { todayKey, minutesSinceMidnight } from '../../lib/date';
 import type { QuickTask } from '../../lib/types';
 
@@ -53,9 +56,10 @@ function findNextUpcoming(tasks: QuickTask[]): QuickTask | null {
 export function StatusBar() {
   const { profile, updateProfile } = useUser();
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
-  const tasksData = useDashboardStore(
-    (s) => s.layout.widgetData?.['quick-tasks'],
-  );
+  // Aggregate today's tasks across every QuickTasks widget (users can have
+  // multiple now — e.g. "Work tasks" + "Home tasks"). The status bar shows
+  // the next upcoming item regardless of which widget it lives in.
+  const mergedTasks = useDashboardStore(selectMergedQuickTasks);
 
   // Re-evaluate "next task" once per minute even if tasks/profile don't change.
   const [minuteTick, setMinuteTick] = useState(0);
@@ -69,7 +73,7 @@ export function StatusBar() {
     : 'professional';
   const tpl = TONE_TEMPLATES[tone];
 
-  const todayTasks = tasksData?.tasks[todayKey()] ?? [];
+  const todayTasks = mergedTasks[todayKey()] ?? [];
   // The minuteTick dependency is intentional — referenced here so linters don't
   // strip the interval, which would drop the passive re-evaluation.
   void minuteTick;

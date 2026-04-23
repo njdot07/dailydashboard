@@ -15,7 +15,13 @@ export interface WidgetInstance {
   w: number;
   h: number;
   type: string;
+  // Per-instance settings blob — shape is determined by the widget's
+  // registry.settingsSchema.
   settings?: Record<string, unknown>;
+  // User-editable label. Falls back to the registry's default title when
+  // absent (e.g. "Pinned Notes"). Useful when duplicating a widget so the
+  // instances can be told apart ("Work" / "Personal").
+  title?: string;
 }
 
 export interface PinnedNote {
@@ -54,19 +60,24 @@ export interface Note {
   updatedAt: string;
 }
 
-// Widget content is keyed by widget type inside layout_config.widgetData.
-// Positions live in layout_config.widgets (populated when react-grid-layout
-// lands in PR 4).
-export interface WidgetDataShape {
-  'pinned-notes'?: { notes: PinnedNote[] };
-  'launchpad'?: { categories: LaunchpadCategory[] };
-  'quick-tasks'?: { tasks: Record<string, QuickTask[]> };
-  'notes'?: { notes: Note[] };
+// Widget content is keyed by widget INSTANCE id (layout.widgets[i].i), not
+// by type — so duplicated widgets of the same type have their own slots.
+// Values are type-erased at the edge of the store; individual widgets cast
+// to their own shape via useWidgetData<T>().
+export type WidgetDataMap = Record<string, unknown>;
+
+// Kept for reference / documentation — not a runtime constraint anymore.
+// Gives an at-a-glance map of which widget type produces which data shape.
+export interface KnownWidgetData {
+  'pinned-notes': { notes: PinnedNote[] };
+  launchpad: { categories: LaunchpadCategory[] };
+  'quick-tasks': { tasks: Record<string, QuickTask[]> };
+  notes: { notes: Note[] };
 }
 
 export interface LayoutConfig {
   widgets: WidgetInstance[];
-  widgetData?: WidgetDataShape;
+  widgetData?: WidgetDataMap;
   gridCols?: number;
 }
 

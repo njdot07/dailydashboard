@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useDashboardStore } from '../stores/dashboardStore';
+import {
+  useDashboardStore,
+  selectMergedQuickTasks,
+} from '../stores/dashboardStore';
 import { minutesSinceMidnight, todayKey } from '../lib/date';
 
 const REMINDER_OFFSET_MIN = 5;
@@ -11,9 +14,9 @@ const CHECK_INTERVAL_MS = 60_000;
  * is alerted at most once per session (alerted set cleared on mount).
  */
 export function useTaskReminders() {
-  const tasksData = useDashboardStore(
-    (s) => s.layout.widgetData?.['quick-tasks'],
-  );
+  // Merged so reminders fire for any task across duplicated QuickTasks
+  // widgets.
+  const tasksByDate = useDashboardStore(selectMergedQuickTasks);
   const alertedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export function useTaskReminders() {
   useEffect(() => {
     const check = () => {
       const today = todayKey();
-      const tasks = tasksData?.tasks[today] ?? [];
+      const tasks = tasksByDate[today] ?? [];
       const now = new Date();
       const nowMin = now.getHours() * 60 + now.getMinutes();
 
@@ -53,5 +56,5 @@ export function useTaskReminders() {
     check();
     const id = window.setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [tasksData]);
+  }, [tasksByDate]);
 }

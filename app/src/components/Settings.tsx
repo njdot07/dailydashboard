@@ -110,22 +110,54 @@ export function Settings({ open, onClose }: SettingsProps) {
           </p>
           <ul className="settings-widget-list">
             {Object.values(WIDGET_REGISTRY).map((entry) => {
-              const added = widgets.some((w) => w.type === entry.type);
+              const instances = widgets.filter((w) => w.type === entry.type);
+              const count = instances.length;
+              const singleton = entry.singleton !== false;
+
+              if (singleton) {
+                return (
+                  <li key={entry.type}>
+                    <label className="settings-toggle-row">
+                      <span className="settings-toggle-row__label">
+                        {entry.title}
+                      </span>
+                      <span className="settings-toggle-row__meta">
+                        {entry.defaultSize.w}×{entry.defaultSize.h}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={count > 0}
+                        onChange={() => toggleWidget(entry.type)}
+                      />
+                    </label>
+                  </li>
+                );
+              }
+
+              // Duplicatable: show count + "+ Add" button. Individual
+              // instances can be removed via the × on the widget itself
+              // in Edit mode.
               return (
                 <li key={entry.type}>
-                  <label className="settings-toggle-row">
+                  <div className="settings-toggle-row">
                     <span className="settings-toggle-row__label">
                       {entry.title}
                     </span>
                     <span className="settings-toggle-row__meta">
-                      {entry.defaultSize.w}×{entry.defaultSize.h}
+                      {count === 0
+                        ? 'none'
+                        : count === 1
+                          ? '1 active'
+                          : `${count} active`}
                     </span>
-                    <input
-                      type="checkbox"
-                      checked={added}
-                      onChange={() => toggleWidget(entry.type)}
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      className="ghost-btn small-btn"
+                      onClick={() => addWidget(entry.type)}
+                    >
+                      + Add
+                    </button>
+                  </div>
                 </li>
               );
             })}

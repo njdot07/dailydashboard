@@ -7,11 +7,10 @@ import {
   type ImportMode,
   type ImportResult,
 } from '../lib/dataPortability';
-import type { WidgetDataShape } from '../lib/types';
 
 export function DataPortabilitySection() {
-  const widgetData = useDashboardStore((s) => s.layout.widgetData ?? {});
-  const setWidgetData = useDashboardStore((s) => s.setWidgetData);
+  const layout = useDashboardStore((s) => s.layout);
+  const setLayout = useDashboardStore((s) => s.setLayout);
 
   const [json, setJson] = useState('');
   const [mode, setMode] = useState<ImportMode>('merge');
@@ -52,28 +51,28 @@ export function DataPortabilitySection() {
 
   const apply = () => {
     if (!parsed) return;
-    const merged = applyImport(widgetData, parsed.payload, mode);
-    const keys: (keyof WidgetDataShape)[] = [
-      'pinned-notes',
-      'launchpad',
-      'quick-tasks',
-      'notes',
-    ];
-    for (const k of keys) {
-      if (merged[k]) setWidgetData(k, merged[k]);
-    }
+    const nextLayout = applyImport(layout, parsed.payload, mode);
+    setLayout(nextLayout);
     setImported(true);
     setParsed(null);
     setJson('');
   };
 
-  const hasAnyData =
-    (widgetData['pinned-notes']?.notes.length ?? 0) > 0 ||
-    (widgetData.launchpad?.categories.length ?? 0) > 0 ||
-    (widgetData['quick-tasks']
-      ? Object.keys(widgetData['quick-tasks'].tasks).length > 0
-      : false) ||
-    (widgetData.notes?.notes.length ?? 0) > 0;
+  // Any data at all? Walk the layout's widgetData and see if any slice
+  // has non-trivial content. Used to disable the Download button when
+  // there's nothing to export.
+  const hasAnyData = useMemo(() => {
+    const data = layout.widgetData ?? {};
+    for (const widget of layout.widgets) {
+      const slice = data[widget.i] as Record<string, unknown> | undefined;
+      if (!slice) continue;
+      for (const v of Object.values(slice)) {
+        if (Array.isArray(v) && v.length > 0) return true;
+        if (v && typeof v === 'object' && Object.keys(v).length > 0) return true;
+      }
+    }
+    return false;
+  }, [layout]);
 
   const preview = parsed?.preview;
   const previewLines = useMemo(() => {
@@ -117,7 +116,7 @@ export function DataPortabilitySection() {
         <button
           type="button"
           className="primary-btn small-btn"
-          onClick={() => downloadExport(widgetData)}
+          onClick={() => downloadExport(layout)}
           disabled={!hasAnyData}
           title={hasAnyData ? undefined : 'Nothing to export yet'}
         >

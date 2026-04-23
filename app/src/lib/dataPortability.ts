@@ -22,11 +22,14 @@
 import type {
   LaunchpadCategory,
   LaunchpadLink,
+  LayoutConfig,
   Note,
   PinnedNote,
   QuickTask,
-  WidgetDataShape,
+  WidgetDataMap,
+  WidgetInstance,
 } from './types';
+import { getWidgetEntry } from '../components/widgets/registry';
 
 const NATIVE_FORMAT_ID = 'daily-dashboard/v1';
 
@@ -54,23 +57,11 @@ export interface ImportResult {
 }
 
 // ============================================================
-// Export (current widget data → downloadable JSON)
+// Export (current layout → downloadable JSON)
 // ============================================================
 
-export function exportDashboard(widgetData: WidgetDataShape): string {
-  const payload = {
-    __format: NATIVE_FORMAT_ID,
-    __exportedAt: new Date().toISOString(),
-    'pinned-notes': widgetData['pinned-notes'],
-    launchpad: widgetData.launchpad,
-    'quick-tasks': widgetData['quick-tasks'],
-    notes: widgetData.notes,
-  };
-  return JSON.stringify(payload, null, 2);
-}
-
-export function downloadExport(widgetData: WidgetDataShape): void {
-  const json = exportDashboard(widgetData);
+export function downloadExport(layout: LayoutConfig): void {
+  const json = exportDashboardFromLayout(layout);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -396,44 +387,150 @@ export function parseImport(json: string): ImportResult {
 }
 
 // ============================================================
-// Apply (merge or replace into existing widgetData)
+// Apply (merge or replace) — routes each type-keyed payload slice into the
+// first widget of that type, creating a new widget at the bottom of the
+// grid if none exists.
 // ============================================================
 
+function nextY(widgets: WidgetInstance[]): number {
+  if (widgets.length === 0) return 0;
+  return Math.max(...widgets.map((w) => w.y + w.h));
+}
+
+// Ensure a widget of this type exists; return its instance id + the
+// (possibly extended) widgets array.
+function ensureWidgetOfType(
+  widgets: WidgetInstance[],
+  type: string,
+): { widgets: WidgetInstance[]; id: string } {
+  const existing = widgets.find((w) => w.type === type);
+  if (existing) return { widgets, id: existing.i };
+  const entry = getWidgetEntry(type);
+  const id = `${type}-${
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10)
+  }`;
+  const widget: WidgetInstance = {
+    i: id,
+    type,
+    x: 0,
+    y: nextY(widgets),
+    w: entry?.defaultSize.w ?? 4,
+    h: entry?.defaultSize.h ?? 3,
+  };
+  return { widgets: [...widgets, widget], id };
+}
+
 export function applyImport(
-  current: WidgetDataShape,
+  current: LayoutConfig,
   payload: ImportResult['payload'],
   mode: ImportMode = 'merge',
-): WidgetDataShape {
-  const next: WidgetDataShape = { ...current };
+): LayoutConfig {
+  let widgets = [...current.widgets];
+  const data: WidgetDataMap = { ...(current.widgetData ?? {}) };
 
   if (payload['pinned-notes']) {
-    const base = mode === 'merge' ? (current['pinned-notes']?.notes ?? []) : [];
-    next['pinned-notes'] = {
-      notes: [...base, ...payload['pinned-notes'].notes],
-    };
+    const r = ensureWidgetOfType(widgets, 'pinned-notes');
+    widgets = r.widgets;
+    const existing = (data[r.id] as { notes?: PinnedNote[] } | undefined)?.notes ?? [];
+    const base = mode === 'merge' ? existing : [];
+    data[r.id] = { notes: [...base, ...payload['pinned-notes'].notes] };
   }
 
   if (payload.launchpad) {
-    const base = mode === 'merge' ? (current.launchpad?.categories ?? []) : [];
-    next.launchpad = {
+    const r = ensureWidgetOfType(widgets, 'launchpad');
+    widgets = r.widgets;
+    const existing =
+      (data[r.id] as { categories?: LaunchpadCategory[] } | undefined)?.categories ??
+      [];
+    const base = mode === 'merge' ? existing : [];
+    data[r.id] = {
       categories: [...base, ...payload.launchpad.categories],
     };
   }
 
   if (payload['quick-tasks']) {
-    const base =
-      mode === 'merge' ? (current['quick-tasks']?.tasks ?? {}) : {};
+    const r = ensureWidgetOfType(widgets, 'quick-tasks');
+    widgets = r.widgets;
+    const existing =
+      (data[r.id] as { tasks?: Record<string, QuickTask[]> } | undefined)?.tasks ??
+      {};
+    const base = mode === 'merge' ? existing : {};
     const merged: Record<string, QuickTask[]> = { ...base };
     for (const [date, arr] of Object.entries(payload['quick-tasks'].tasks)) {
       merged[date] = [...(merged[date] ?? []), ...arr];
     }
-    next['quick-tasks'] = { tasks: merged };
+    data[r.id] = { tasks: merged };
   }
 
   if (payload.notes) {
-    const base = mode === 'merge' ? (current.notes?.notes ?? []) : [];
-    next.notes = { notes: [...base, ...payload.notes.notes] };
+    const r = ensureWidgetOfType(widgets, 'notes');
+    widgets = r.widgets;
+    const existing = (data[r.id] as { notes?: Note[] } | undefined)?.notes ?? [];
+    const base = mode === 'merge' ? existing : [];
+    data[r.id] = { notes: [...base, ...payload.notes.notes] };
   }
 
-  return next;
+  return {
+    ...current,
+    widgets,
+    widgetData: data,
+  };
+}
+
+// Export a native backup by pulling each duplicable widget's data back out
+// from the instance-keyed widgetData and re-grouping it under type keys,
+// so the export stays round-trippable with legacy imports too.
+export function exportDashboardFromLayout(layout: LayoutConfig): string {
+  const data = layout.widgetData ?? {};
+
+  // Collect first-of-type data for each supported type.
+  const pickFirstOfType = <T>(type: string): T | undefined => {
+    const w = layout.widgets.find((ww) => ww.type === type);
+    return w ? (data[w.i] as T | undefined) : undefined;
+  };
+
+  // Merged view — if there are multiple instances (e.g. several pinned-
+  // notes widgets), concatenate so no data is lost on export.
+  const pinnedAll: PinnedNote[] = [];
+  const launchpadAll: LaunchpadCategory[] = [];
+  const tasksAll: Record<string, QuickTask[]> = {};
+  const notesAll: Note[] = [];
+  for (const w of layout.widgets) {
+    const slice = data[w.i];
+    if (!slice || typeof slice !== 'object') continue;
+    if (w.type === 'pinned-notes') {
+      const s = slice as { notes?: PinnedNote[] };
+      if (Array.isArray(s.notes)) pinnedAll.push(...s.notes);
+    } else if (w.type === 'launchpad') {
+      const s = slice as { categories?: LaunchpadCategory[] };
+      if (Array.isArray(s.categories)) launchpadAll.push(...s.categories);
+    } else if (w.type === 'quick-tasks') {
+      const s = slice as { tasks?: Record<string, QuickTask[]> };
+      if (s.tasks) {
+        for (const [d, arr] of Object.entries(s.tasks)) {
+          tasksAll[d] = [...(tasksAll[d] ?? []), ...arr];
+        }
+      }
+    } else if (w.type === 'notes') {
+      const s = slice as { notes?: Note[] };
+      if (Array.isArray(s.notes)) notesAll.push(...s.notes);
+    }
+  }
+
+  // Also preserve anything keyed at type-level (defensive — shouldn't
+  // exist after loadDashboard's migration).
+  void pickFirstOfType;
+
+  const payload = {
+    __format: 'daily-dashboard/v1',
+    __exportedAt: new Date().toISOString(),
+    'pinned-notes': pinnedAll.length ? { notes: pinnedAll } : undefined,
+    launchpad: launchpadAll.length ? { categories: launchpadAll } : undefined,
+    'quick-tasks':
+      Object.keys(tasksAll).length > 0 ? { tasks: tasksAll } : undefined,
+    notes: notesAll.length ? { notes: notesAll } : undefined,
+  };
+  return JSON.stringify(payload, null, 2);
 }

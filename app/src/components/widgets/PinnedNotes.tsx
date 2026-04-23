@@ -1,12 +1,14 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { useWidgetContext } from '../WidgetContext';
 import { useDashboardStore } from '../../stores/dashboardStore';
 import type { PinnedNote } from '../../lib/types';
 
-const EMPTY = { notes: [] as PinnedNote[] };
+const EMPTY: { notes: PinnedNote[] } = { notes: [] };
 
 export function PinnedNotes() {
-  const [data, setData] = useWidgetData('pinned-notes', EMPTY);
+  const [data, setData] = useWidgetData(EMPTY);
+  const { title } = useWidgetContext();
   const editMode = useDashboardStore((s) => s.uiMode === 'edit');
   const [draft, setDraft] = useState('');
 
@@ -41,7 +43,7 @@ export function PinnedNotes() {
 
   return (
     <div className="widget widget--pinned-notes glass-panel">
-      <h2 className="widget-title">Pinned Notes</h2>
+      <h2 className="widget-title">{title}</h2>
 
       <div className="pin-input-row">
         <input
