@@ -1,9 +1,11 @@
-// Proxy for the Gmail widget. Returns up to 20 recent inbox messages
-// with just enough metadata to render a compact preview list. Handles
-// transparent access-token refresh when the stored one has expired.
+// Proxy for the Gmail widget. Returns up to 20 recent inbox messages with
+// just enough metadata to render a compact preview list. Handles
+// transparent access-token refresh using THIS USER's own OAuth app
+// credentials loaded from user_oauth_configs.
 
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts';
 import { adminClient, getUserId } from '../_shared/auth.ts';
+import { getOAuthConfig } from '../_shared/oauthConfigs.ts';
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const GMAIL_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -27,11 +29,9 @@ interface TokenRow {
 
 async function refreshAccessToken(
   refreshToken: string,
+  clientId: string,
+  clientSecret: string,
 ): Promise<{ access_token: string; expires_in: number } | null> {
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-  if (!clientId || !clientSecret) return null;
-
   const res = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -56,6 +56,14 @@ Deno.serve(async (req) => {
   const userId = await getUserId(req);
   if (!userId) return jsonResponse({ error: 'unauthenticated' }, 401);
 
+  const config = await getOAuthConfig(userId, 'gmail');
+  if (!config) {
+    return jsonResponse(
+      { error: 'oauth-not-configured' },
+      400,
+    );
+  }
+
   const db = adminClient();
   const { data: row, error: loadError } = await db
     .from('user_integrations')
@@ -67,7 +75,6 @@ Deno.serve(async (req) => {
   if (loadError) return jsonResponse({ error: loadError.message }, 500);
   if (!row) return jsonResponse({ error: 'not-connected' }, 404);
 
-  // Refresh if expired (or close to it — 30s buffer).
   let accessToken = row.access_token;
   const expiresAt = row.token_expires_at
     ? new Date(row.token_expires_at).getTime()
@@ -75,11 +82,18 @@ Deno.serve(async (req) => {
   if (expiresAt - 30_000 < Date.now()) {
     if (!row.refresh_token) {
       return jsonResponse(
-        { error: 'no-refresh-token', detail: 'Please disconnect and reconnect Gmail.' },
+        {
+          error: 'no-refresh-token',
+          detail: 'Please disconnect and reconnect Gmail.',
+        },
         401,
       );
     }
-    const refreshed = await refreshAccessToken(row.refresh_token);
+    const refreshed = await refreshAccessToken(
+      row.refresh_token,
+      config.clientId,
+      config.clientSecret,
+    );
     if (!refreshed) {
       return jsonResponse(
         {
@@ -103,7 +117,6 @@ Deno.serve(async (req) => {
       .eq('provider', 'gmail');
   }
 
-  // 1) List recent inbox messages.
   const listRes = await fetch(
     `${GMAIL_BASE}/messages?maxResults=${MAX_MESSAGES}&labelIds=INBOX`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -122,7 +135,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ messages: [] as GmailMessageSummary[] });
   }
 
-  // 2) Fetch metadata for each in parallel.
   const metadataUrl = (id: string) =>
     `${GMAIL_BASE}/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`;
 

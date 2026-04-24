@@ -2202,6 +2202,171 @@ body[data-ui-mode='layout'] .widget-shell:active {
   line-height: 1.35;
 }
 
+.integration-row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   OAuth provider setup modal
+   ============================================================ */
+
+.oauth-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.oauth-setup__why {
+  padding: 0.85rem 1rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #fff;
+}
+
+.oauth-setup__why strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.oauth-setup__why p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.oauth-setup__toggle {
+  appearance: none;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  align-self: flex-start;
+}
+
+.oauth-setup__toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.oauth-setup__steps {
+  margin: 0;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.85);
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.oauth-setup__steps li {
+  padding-left: 0.25rem;
+}
+
+.oauth-setup__steps a {
+  color: #a5b4fc;
+}
+
+.oauth-setup__steps a:hover {
+  color: #c7d2fe;
+}
+
+.oauth-setup__steps code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.oauth-setup__redirect-uri {
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.oauth-setup__redirect-uri code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  user-select: all;
+}
+
+.oauth-setup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.oauth-setup__form h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.oauth-setup__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__form label span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.oauth-setup__form input {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__form input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.oauth-setup__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+}
+
+.modal:has(.oauth-setup) {
+  width: min(620px, 100%);
+}
+
 /* ============================================================
    Gmail widget
    ============================================================ */

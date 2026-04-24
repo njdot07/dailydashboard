@@ -1,9 +1,12 @@
 // Step 1 of the OAuth dance. Frontend calls this with the current window
-// origin, we verify the caller's JWT, then return the Google authorization
-// URL the frontend should redirect the user's browser to.
+// origin, we verify the caller's JWT and look up THEIR OAuth app
+// credentials (from user_oauth_configs — each user registers their own
+// Google Cloud project), then return the Google authorization URL the
+// frontend should redirect the user's browser to.
 
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts';
 import { getUserId } from '../_shared/auth.ts';
+import { getOAuthConfig } from '../_shared/oauthConfigs.ts';
 import { signState } from '../_shared/oauth.ts';
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
@@ -20,14 +23,22 @@ Deno.serve(async (req) => {
   const origin =
     typeof body?.origin === 'string' ? body.origin : 'http://localhost:5173';
 
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
-  const redirectBase = Deno.env.get('OAUTH_REDIRECT_BASE');
-  if (!clientId || !redirectBase) {
+  const config = await getOAuthConfig(userId, 'gmail');
+  if (!config) {
     return jsonResponse(
       {
-        error:
-          'server not configured — set GOOGLE_CLIENT_ID and OAUTH_REDIRECT_BASE',
+        error: 'oauth-not-configured',
+        detail:
+          'Set up your Google OAuth app credentials in Settings → Integrations → Gmail → Set up first.',
       },
+      400,
+    );
+  }
+
+  const redirectBase = Deno.env.get('OAUTH_REDIRECT_BASE');
+  if (!redirectBase) {
+    return jsonResponse(
+      { error: 'server-misconfigured', detail: 'OAUTH_REDIRECT_BASE missing.' },
       500,
     );
   }
@@ -35,16 +46,10 @@ Deno.serve(async (req) => {
   const state = await signState({ userId, origin, provider: 'gmail' });
 
   const url = new URL(AUTH_ENDPOINT);
-  url.searchParams.set('client_id', clientId);
-  url.searchParams.set(
-    'redirect_uri',
-    `${redirectBase}/gmail-oauth-callback`,
-  );
+  url.searchParams.set('client_id', config.clientId);
+  url.searchParams.set('redirect_uri', `${redirectBase}/gmail-oauth-callback`);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('scope', GMAIL_SCOPE);
-  // offline + prompt=consent together are what make Google hand back a
-  // refresh token we can use later to keep calling the API past the
-  // 1-hour access-token lifetime.
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent');
   url.searchParams.set('state', state);
