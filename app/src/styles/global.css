@@ -1927,6 +1927,193 @@ body[data-ui-mode='layout'] .widget-shell:active {
   width: min(560px, 100%);
 }
 
+.modal:has(.settings--tabbed) {
+  width: min(700px, 100%);
+}
+
+/* Tab navigation */
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.settings-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.88rem;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.settings-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab--active {
+  color: #fff;
+  border-bottom-color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.settings-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Prose sections inside Privacy / Help */
+.settings-subtitle {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.settings-prose {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.settings-prose strong {
+  color: #fff;
+}
+
+.settings-prose code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.settings-prose a,
+.settings-privacy a,
+.settings-help a {
+  color: #a5b4fc;
+}
+
+.settings-prose a:hover,
+.settings-privacy a:hover,
+.settings-help a:hover {
+  color: #c7d2fe;
+}
+
+/* FAQ accordion */
+.faq {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.faq__item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.faq__item--open {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.faq__question {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.faq__question:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.faq__chevron {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.faq__answer {
+  padding: 0 0.85rem 0.85rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.faq__answer p {
+  margin: 0 0 0.5rem;
+}
+
+.faq__answer p:last-child {
+  margin-bottom: 0;
+}
+
+.faq__answer code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.78rem;
+  color: #fff;
+}
+
+.faq__answer a {
+  color: #a5b4fc;
+}
+
+.faq__answer a:hover {
+  color: #c7d2fe;
+}
+
+/* Weekly-reconnect notice under the Gmail row */
+.integration-row__notice {
+  margin: 0.35rem 0 0;
+  padding: 0.45rem 0.65rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.integration-row__notice strong {
+  color: #fff;
+}
+
 /* ============================================================
    Task-color swatches + QuickTasks day navigator
    ============================================================ */

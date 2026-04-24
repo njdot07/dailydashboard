@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useWidgetContext } from '../WidgetContext';
 import { useWidgetSettings } from '../../hooks/useWidgetSettings';
 import { useIntegrationsStore } from '../../stores/integrationsStore';
-import { callEdgeFunction } from '../../lib/edgeFunctions';
+import {
+  callEdgeFunction,
+  EdgeFunctionError,
+} from '../../lib/edgeFunctions';
 
 interface GmailMessage {
   id: string;
@@ -25,6 +28,27 @@ function extractSender(from: string): string {
   const emailMatch = from.match(/<([^>]+)>/);
   if (emailMatch?.[1]) return emailMatch[1];
   return from;
+}
+
+// Map Edge Function error codes to short, actionable messages. Anything
+// involving token refresh points the user to Settings — that's where the
+// Reconnect button lives.
+function friendlyError(code: string, detail: string | null): string {
+  switch (code) {
+    case 'refresh-failed':
+    case 'no-refresh-token':
+      return 'Gmail authorisation has expired. Open Settings → Integrations → Gmail and click Reconnect.';
+    case 'not-connected':
+      return 'Gmail is not connected. Open Settings → Integrations to authorise.';
+    case 'oauth-not-configured':
+      return 'OAuth credentials are missing. Open Settings → Integrations → Gmail → Set up.';
+    case 'gmail-list-failed':
+      return 'Gmail rejected the request. Try refreshing — if it persists, reconnect from Settings → Integrations.';
+    case 'unauthenticated':
+      return 'Your session expired. Reload the page and sign in again.';
+    default:
+      return detail ?? 'Couldn’t load your inbox. Try again in a moment.';
+  }
 }
 
 function relativeTime(iso: string): string {
@@ -52,12 +76,14 @@ export function GmailWidget() {
 
   const [messages, setMessages] = useState<GmailMessage[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setErrorCode(null);
+    setErrorDetail(null);
     try {
       const data = await callEdgeFunction<{ messages: GmailMessage[] }>(
         'gmail-messages',
@@ -65,7 +91,13 @@ export function GmailWidget() {
       setMessages(data.messages);
       setLastFetched(new Date());
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof EdgeFunctionError) {
+        setErrorCode(e.code);
+        setErrorDetail(e.detail);
+      } else {
+        setErrorCode('unknown');
+        setErrorDetail((e as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -122,13 +154,15 @@ export function GmailWidget() {
         </button>
       </div>
 
-      {error && <div className="auth-error">{error}</div>}
+      {errorCode && (
+        <div className="auth-error">{friendlyError(errorCode, errorDetail)}</div>
+      )}
 
-      {!messages && !error && (
+      {!messages && !errorCode && (
         <p className="widget-empty">Loading inbox…</p>
       )}
 
-      {messages && messages.length === 0 && (
+      {messages && messages.length === 0 && !errorCode && (
         <p className="widget-empty">Inbox is empty.</p>
       )}
 

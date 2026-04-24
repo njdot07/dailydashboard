@@ -138,6 +138,14 @@ export function IntegrationsSection() {
               <div className="integration-row__main">
                 <strong>{p.label}</strong>
                 <p>{status}</p>
+                {connected && p.id === 'gmail' && (
+                  <p className="integration-row__notice">
+                    Google invalidates access roughly every 7 days while
+                    this OAuth app is in Testing mode. If the widget stops
+                    loading, click <strong>Reconnect</strong> to refresh
+                    authorisation.
+                  </p>
+                )}
               </div>
               <div className="integration-row__actions">
                 {p.hasDiy && configured && (
@@ -151,13 +159,25 @@ export function IntegrationsSection() {
                   </button>
                 )}
                 {connected ? (
-                  <button
-                    type="button"
-                    className="ghost-btn small-btn"
-                    onClick={() => disconnect(p.id)}
-                  >
-                    Disconnect
-                  </button>
+                  <>
+                    {p.hasDiy && (
+                      <button
+                        type="button"
+                        className="primary-btn small-btn"
+                        onClick={() => startConnect(p.id)}
+                        title="Re-run authorisation to refresh the access token"
+                      >
+                        Reconnect
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="ghost-btn small-btn"
+                      onClick={() => disconnect(p.id)}
+                    >
+                      Disconnect
+                    </button>
+                  </>
                 ) : configured ? (
                   <button
                     type="button"
