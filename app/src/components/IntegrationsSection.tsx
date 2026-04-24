@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { pingHello } from '../lib/edgeFunctions';
+import {
+  useIntegrationsStore,
+  type Provider,
+} from '../stores/integrationsStore';
 
-// Static catalogue of providers we plan to support. Connect buttons are
-// disabled in PR 17 — PR 18 fills in Gmail, PR 19 fills in Outlook + Teams.
 interface ProviderCatalogEntry {
-  id: 'gmail' | 'outlook' | 'teams';
+  id: Provider;
   label: string;
   hint: string;
+  // When false, Connect button is disabled ("not shipped yet"). Gmail
+  // is live in PR 18; Outlook + Teams flip to true in PR 19.
+  implemented: boolean;
 }
 
 const PROVIDERS: ProviderCatalogEntry[] = [
@@ -14,16 +19,19 @@ const PROVIDERS: ProviderCatalogEntry[] = [
     id: 'gmail',
     label: 'Gmail',
     hint: 'Read-only inbox preview via the Gmail API (OAuth).',
+    implemented: true,
   },
   {
     id: 'outlook',
     label: 'Outlook',
     hint: 'Microsoft email via Microsoft Graph (OAuth).',
+    implemented: false,
   },
   {
     id: 'teams',
     label: 'Microsoft Teams',
     hint: 'Recent Teams chats. May require admin consent.',
+    implemented: false,
   },
 ];
 
@@ -34,6 +42,12 @@ type TestState =
   | { kind: 'error'; message: string };
 
 export function IntegrationsSection() {
+  const connections = useIntegrationsStore((s) => s.connections);
+  const loading = useIntegrationsStore((s) => s.loading);
+  const storeError = useIntegrationsStore((s) => s.error);
+  const startConnect = useIntegrationsStore((s) => s.startConnect);
+  const disconnect = useIntegrationsStore((s) => s.disconnect);
+
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
 
   const runTest = async () => {
@@ -46,18 +60,19 @@ export function IntegrationsSection() {
     }
   };
 
+  const connectionFor = (id: Provider) =>
+    connections.find((c) => c.provider === id) ?? null;
+
   return (
     <section className="settings-section">
       <h3 className="settings-section-title">Integrations</h3>
       <p className="settings-section-hint">
-        Connect services that can't be iframed (Gmail, Outlook, Teams) via
-        OAuth. Once connected, dedicated widgets read messages / chats from
-        the provider's API. Each service ships in a later PR —
-        this section wires the backbone.
+        Services that can't be iframed (Gmail, Outlook, Teams) connect via
+        OAuth. Once connected, their widget reads from the provider's API.
       </p>
 
-      {/* Deployment smoke test — PR 17 only. Once PR 18 is live this block
-          collapses into each provider row's own connection state. */}
+      {/* Edge Functions smoke test — keep around so debugging deployment
+          issues stays one click away. */}
       <div className="integrations-test">
         <div>
           <strong>Edge Functions</strong>
@@ -77,30 +92,56 @@ export function IntegrationsSection() {
       {test.kind === 'ok' && (
         <div className="auth-notice">
           Reached the Edge Function as <code>{test.userId}</code> at{' '}
-          {new Date(test.now).toLocaleTimeString()}. Backbone is live.
+          {new Date(test.now).toLocaleTimeString()}.
         </div>
       )}
       {test.kind === 'error' && (
         <div className="auth-error">{test.message}</div>
       )}
 
+      {storeError && <div className="auth-error">{storeError}</div>}
+      {loading && (
+        <p className="settings-section-hint">Loading connection state…</p>
+      )}
+
       <ul className="integrations-list">
-        {PROVIDERS.map((p) => (
-          <li key={p.id} className="integration-row">
-            <div className="integration-row__main">
-              <strong>{p.label}</strong>
-              <p>{p.hint}</p>
-            </div>
-            <button
-              type="button"
-              className="ghost-btn small-btn"
-              disabled
-              title="Ships in a later PR"
-            >
-              Coming soon
-            </button>
-          </li>
-        ))}
+        {PROVIDERS.map((p) => {
+          const conn = connectionFor(p.id);
+          const connected = !!conn;
+          return (
+            <li key={p.id} className="integration-row">
+              <div className="integration-row__main">
+                <strong>{p.label}</strong>
+                <p>
+                  {connected
+                    ? `Connected${conn!.accountEmail ? ` as ${conn!.accountEmail}` : ''}.`
+                    : p.hint}
+                </p>
+              </div>
+              {connected ? (
+                <button
+                  type="button"
+                  className="ghost-btn small-btn"
+                  onClick={() => disconnect(p.id)}
+                >
+                  Disconnect
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-btn small-btn"
+                  onClick={() => startConnect(p.id)}
+                  disabled={!p.implemented}
+                  title={
+                    p.implemented ? undefined : 'Ships in a later PR'
+                  }
+                >
+                  {p.implemented ? 'Connect' : 'Coming soon'}
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

@@ -3,6 +3,7 @@ import { Responsive, WidthProvider, type Layout } from 'react-grid-layout';
 import { useUser } from '../providers/UserProvider';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { useSecretsStore } from '../stores/secretsStore';
+import { useIntegrationsStore } from '../stores/integrationsStore';
 import { useTaskReminders } from '../hooks/useTaskReminders';
 import { Header } from './Header';
 import { WidgetShell } from './WidgetShell';
@@ -61,6 +62,32 @@ export function Dashboard() {
       window.removeEventListener('beforeunload', onBeforeUnload);
       useSecretsStore.getState().reset();
     };
+  }, [user?.id]);
+
+  // Integrations: load connected providers when the user arrives, reset on
+  // logout. Also consumes the OAuth callback's return URL params so
+  // ?integration=gmail&status=success doesn't linger in the address bar.
+  // On a successful return we pop the Settings modal open so the user
+  // immediately sees the newly-connected row.
+  useEffect(() => {
+    if (!user) {
+      useIntegrationsStore.getState().reset();
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const integration = params.get('integration');
+    const status = params.get('status');
+    if (integration && status) {
+      window.history.replaceState(
+        {},
+        '',
+        window.location.pathname + window.location.hash,
+      );
+      if (status === 'success') {
+        setSettingsOpen(true);
+      }
+    }
+    useIntegrationsStore.getState().load(user.id);
   }, [user?.id]);
 
   useEffect(() => {

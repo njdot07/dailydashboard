@@ -8,6 +8,7 @@ import { PinnedNotes } from './PinnedNotes';
 import { Launchpad } from './Launchpad';
 import { NotesLibrary } from './NotesLibrary';
 import { Embed } from './Embed';
+import { GmailWidget } from './GmailWidget';
 import type { SettingsSchema } from '../../lib/widgetSettings';
 
 export interface WidgetEntry {
@@ -152,6 +153,29 @@ export const WIDGET_REGISTRY: Record<string, WidgetEntry> = {
     // a dashboard from another service, etc.). Each instance owns its
     // own URL via useWidgetData.
     singleton: false,
+  },
+  gmail: {
+    type: 'gmail',
+    title: 'Gmail',
+    Component: GmailWidget,
+    defaultSize: { w: 4, h: 5 },
+    minSize: { w: 3, h: 3 },
+    // Duplicatable so a user can place an inbox preview in multiple
+    // spots / sizes. All instances show the same inbox (only one
+    // Gmail account can be connected per user, enforced by a unique
+    // constraint on user_integrations).
+    singleton: false,
+    settingsSchema: {
+      refreshMinutes: {
+        type: 'number',
+        label: 'Auto-refresh every (minutes)',
+        default: 5,
+        min: 1,
+        max: 120,
+        step: 1,
+        hint: 'How often the widget re-fetches your recent messages.',
+      },
+    },
   },
 };
 
