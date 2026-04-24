@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Modal } from './Modal';
 import { useUser } from '../providers/UserProvider';
 import {
@@ -7,19 +7,56 @@ import {
 } from '../stores/integrationsStore';
 
 // -----------------------------------------------------------------------
-// Configurable constants — edit here if the contact email or fee changes.
+// Configurable constants — edit here if the contact email, fees, or
+// package composition change.
 // -----------------------------------------------------------------------
 const SUPPORT_EMAIL = 'dailydashboard@gmail.com';
-const PAID_SETUP_FEE_USD = 39;
-// "Administrator" is the formal term the product uses for the person who
-// runs this dashboard instance. Change here if you prefer "Creator",
-// "Operator", etc. — it's surfaced verbatim in modal copy.
 const ADMIN_NOUN = 'Dashboard Administrator';
 
-// Per-provider metadata + walkthrough. Keeps the modal generic so Outlook
-// + Teams can be added as map entries later.
-interface ProviderSetupGuide {
+type PackageId = 'single' | 'core' | 'full';
+
+interface PackageDef {
+  id: PackageId;
   label: string;
+  price: number;
+  summary: string;
+}
+
+const PACKAGES: PackageDef[] = [
+  {
+    id: 'single',
+    label: 'Single integration',
+    price: 19,
+    summary: 'Any one app of your choice (core or custom).',
+  },
+  {
+    id: 'core',
+    label: 'Core bundle',
+    price: 39,
+    summary: 'Gmail + Outlook + Microsoft Teams.',
+  },
+  {
+    id: 'full',
+    label: 'Full bundle',
+    price: 59,
+    summary: 'Core bundle plus up to 2 custom integrations.',
+  },
+];
+
+// Target can be a real OAuth provider (gmail / outlook / teams) or
+// 'custom' — a purely-request flow for apps not yet offered.
+export type SetupTarget = Provider | 'custom';
+
+const TARGET_LABEL: Record<SetupTarget, string> = {
+  gmail: 'Gmail',
+  outlook: 'Outlook',
+  teams: 'Microsoft Teams',
+  custom: 'Custom integration',
+};
+
+// Per-provider DIY walkthrough. Presence of a guide controls whether the
+// "Do it yourself" choice is offered. null ⇒ paid-only path.
+interface ProviderSetupGuide {
   steps: ReactNode[];
 }
 
@@ -28,9 +65,8 @@ function redirectUri(): string {
   return `${base}/functions/v1/gmail-oauth-callback`;
 }
 
-const GUIDES: Record<Provider, ProviderSetupGuide | null> = {
+const GUIDES: Record<SetupTarget, ProviderSetupGuide | null> = {
   gmail: {
-    label: 'Gmail',
     steps: [
       <>
         Go to{' '}
@@ -73,13 +109,14 @@ const GUIDES: Record<Provider, ProviderSetupGuide | null> = {
   },
   outlook: null,
   teams: null,
+  custom: null,
 };
 
 // -----------------------------------------------------------------------
 
 interface OAuthSetupModalProps {
   open: boolean;
-  provider: Provider;
+  target: SetupTarget;
   onClose: () => void;
 }
 
@@ -87,15 +124,23 @@ type View = 'choice' | 'diy' | 'paid';
 
 export function OAuthSetupModal({
   open,
-  provider,
+  target,
   onClose,
 }: OAuthSetupModalProps) {
   const { user } = useUser();
+
+  // Existing OAuth credentials only exist for real providers that have
+  // a DIY flow. For 'custom' the lookup simply yields undefined.
   const existing = useIntegrationsStore((s) =>
-    s.oauthConfigs.find((c) => c.provider === provider),
+    target === 'custom'
+      ? undefined
+      : s.oauthConfigs.find((c) => c.provider === target),
   );
   const saveOAuthConfig = useIntegrationsStore((s) => s.saveOAuthConfig);
   const deleteOAuthConfig = useIntegrationsStore((s) => s.deleteOAuthConfig);
+
+  const guide = GUIDES[target];
+  const targetLabel = TARGET_LABEL[target];
 
   const [view, setView] = useState<View>('choice');
   const [clientId, setClientId] = useState('');
@@ -104,22 +149,41 @@ export function OAuthSetupModal({
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
 
-  // Reset whenever the modal opens fresh. If credentials already exist,
-  // jump straight to the DIY view so the user can edit them.
+  // Paid-path state
+  const [packageId, setPackageId] = useState<PackageId>('single');
+  const [customApps, setCustomApps] = useState('');
+  const [whyOpen, setWhyOpen] = useState(false);
+
+  // Reset whenever the modal opens fresh. If this is a non-DIY target
+  // (outlook/teams/custom) skip straight to the paid view. If credentials
+  // already exist for a DIY provider, jump to the DIY form to edit them.
   useEffect(() => {
     if (!open) return;
     setClientId(existing?.clientId ?? '');
     setClientSecret('');
     setError(null);
     setConsent(false);
-    setView(existing ? 'diy' : 'choice');
-  }, [open, existing]);
+    setCustomApps('');
+    setWhyOpen(false);
+    setPackageId('single');
+    if (!guide) {
+      setView('paid');
+    } else if (existing) {
+      setView('diy');
+    } else {
+      setView('choice');
+    }
+  }, [open, existing, guide]);
 
-  const guide = GUIDES[provider];
-  if (!guide) return null;
+  const selectedPackage = useMemo(
+    () => PACKAGES.find((p) => p.id === packageId)!,
+    [packageId],
+  );
+  const needsCustomApps = packageId === 'full' || target === 'custom';
 
   const submitCreds = async (e: FormEvent) => {
     e.preventDefault();
+    if (!guide || target === 'custom') return;
     const cid = clientId.trim();
     const cs = clientSecret.trim();
     if (!cid || !cs) {
@@ -128,13 +192,14 @@ export function OAuthSetupModal({
     }
     setSaving(true);
     setError(null);
-    const ok = await saveOAuthConfig(provider, cid, cs);
+    const ok = await saveOAuthConfig(target as Provider, cid, cs);
     setSaving(false);
     if (ok) onClose();
     else setError('Save failed. Try again.');
   };
 
   const onDelete = async () => {
+    if (target === 'custom') return;
     if (
       !confirm(
         'Remove your OAuth credentials? Any active connection will stop refreshing.',
@@ -142,22 +207,38 @@ export function OAuthSetupModal({
     ) {
       return;
     }
-    await deleteOAuthConfig(provider);
+    await deleteOAuthConfig(target as Provider);
     onClose();
   };
 
+  const describeIntegrations = (): string => {
+    if (packageId === 'core') return 'Gmail + Outlook + Microsoft Teams';
+    if (packageId === 'full') {
+      return `Gmail + Outlook + Microsoft Teams + custom apps${
+        customApps.trim() ? ` (${customApps.trim()})` : ''
+      }`;
+    }
+    // single
+    if (target === 'custom') {
+      return customApps.trim()
+        ? `Custom integration: ${customApps.trim()}`
+        : 'Custom integration (to be specified)';
+    }
+    return targetLabel;
+  };
+
   const sendPaidRequest = () => {
-    const subject = `Daily Dashboard — paid ${guide.label} setup request`;
+    const subject = `Daily Dashboard — setup request (${selectedPackage.label}, US $${selectedPackage.price})`;
     const lines = [
       `Hello,`,
       ``,
-      `I'd like to request paid assistance setting up the ${guide.label} integration on Daily Dashboard.`,
+      `I'd like to request paid assistance setting up the following on Daily Dashboard:`,
+      `  ${describeIntegrations()}`,
       ``,
       `Dashboard account: ${user?.email ?? '(please confirm)'}`,
-      `Provider: ${guide.label}`,
-      `Agreed fee: US $${PAID_SETUP_FEE_USD}`,
+      `Package: ${selectedPackage.label} — US $${selectedPackage.price} (${selectedPackage.summary})`,
       ``,
-      `Please reply to confirm payment method and a time to complete the setup.`,
+      `Please reply to confirm payment method, the secure credential-transfer channel, and a time to complete the setup.`,
       ``,
       `Thank you.`,
     ].join('\n');
@@ -167,20 +248,43 @@ export function OAuthSetupModal({
     window.location.href = mailto;
   };
 
+  // Title copy differs slightly for custom vs real providers.
+  const title =
+    target === 'custom'
+      ? 'Custom integration request'
+      : `${targetLabel} setup`;
+
+  // Brief paragraph varies: DIY-capable providers mention both options.
+  const briefText = guide ? (
+    <>
+      {targetLabel} requires each application reading your data to register
+      with the provider's OAuth platform. You have two options: set it up
+      yourself (free, ~15 minutes) or request paid assistance from the{' '}
+      {ADMIN_NOUN}.
+    </>
+  ) : target === 'custom' ? (
+    <>
+      Don't see the app you need? Request a paid custom integration — the{' '}
+      {ADMIN_NOUN} will scope, implement, and connect it to your dashboard.
+    </>
+  ) : (
+    <>
+      {targetLabel} integration is coordinated through the {ADMIN_NOUN}.
+      Select a package below to request a setup session.
+    </>
+  );
+
+  const showBack = view !== 'choice' && !!guide;
+
   return (
-    <Modal open={open} onClose={onClose} title={`${guide.label} setup`}>
+    <Modal open={open} onClose={onClose} title={title}>
       <div className="oauth-setup">
-        <p className="oauth-setup__brief">
-          Google requires each application reading Gmail to register with
-          their OAuth platform. You have two options: set it up yourself
-          (free, ~15 minutes), or request paid assistance from the{' '}
-          {ADMIN_NOUN}.
-        </p>
+        <p className="oauth-setup__brief">{briefText}</p>
 
         {/* ------------------------------------------------------------ */}
-        {/* Choice view                                                   */}
+        {/* Choice view (only when a DIY guide exists for this target)   */}
         {/* ------------------------------------------------------------ */}
-        {view === 'choice' && (
+        {view === 'choice' && guide && (
           <div className="oauth-setup__choices">
             <button
               type="button"
@@ -190,8 +294,9 @@ export function OAuthSetupModal({
               <strong>Do it yourself</strong>
               <span className="oauth-setup__choice-fee">Free</span>
               <span>
-                Register your own Google Cloud project, paste the resulting
-                credentials below. Step-by-step instructions included.
+                Register your own {targetLabel === 'Gmail' ? 'Google Cloud' : 'provider'}{' '}
+                project, paste the resulting credentials. Step-by-step
+                instructions included.
               </span>
             </button>
             <button
@@ -200,12 +305,10 @@ export function OAuthSetupModal({
               onClick={() => setView('paid')}
             >
               <strong>Request paid setup</strong>
-              <span className="oauth-setup__choice-fee">
-                US ${PAID_SETUP_FEE_USD}
-              </span>
+              <span className="oauth-setup__choice-fee">From US $19</span>
               <span>
                 The {ADMIN_NOUN} handles the setup with you. One-time fee,
-                no subscription.
+                no subscription. Bundle discounts available.
               </span>
             </button>
           </div>
@@ -214,15 +317,17 @@ export function OAuthSetupModal({
         {/* ------------------------------------------------------------ */}
         {/* DIY view                                                      */}
         {/* ------------------------------------------------------------ */}
-        {view === 'diy' && (
+        {view === 'diy' && guide && (
           <>
-            <button
-              type="button"
-              className="oauth-setup__back"
-              onClick={() => setView('choice')}
-            >
-              ← Back
-            </button>
+            {showBack && (
+              <button
+                type="button"
+                className="oauth-setup__back"
+                onClick={() => setView('choice')}
+              >
+                ← Back
+              </button>
+            )}
 
             <ol className="oauth-setup__steps">
               {guide.steps.map((node, i) => (
@@ -297,20 +402,115 @@ export function OAuthSetupModal({
         {/* ------------------------------------------------------------ */}
         {view === 'paid' && (
           <>
-            <button
-              type="button"
-              className="oauth-setup__back"
-              onClick={() => setView('choice')}
-            >
-              ← Back
-            </button>
+            {showBack && (
+              <button
+                type="button"
+                className="oauth-setup__back"
+                onClick={() => setView('choice')}
+              >
+                ← Back
+              </button>
+            )}
 
             <div className="oauth-setup__paid">
+              <fieldset className="oauth-setup__packages">
+                <legend>Choose a package</legend>
+                {PACKAGES.map((p) => (
+                  <label key={p.id} className="oauth-setup__package">
+                    <input
+                      type="radio"
+                      name="package"
+                      value={p.id}
+                      checked={packageId === p.id}
+                      onChange={() => setPackageId(p.id)}
+                    />
+                    <span className="oauth-setup__package-body">
+                      <span className="oauth-setup__package-head">
+                        <strong>{p.label}</strong>
+                        <span className="oauth-setup__package-price">
+                          US ${p.price}
+                        </span>
+                      </span>
+                      <span className="oauth-setup__package-summary">
+                        {p.summary}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+
+              <button
+                type="button"
+                className="oauth-setup__why-toggle"
+                onClick={() => setWhyOpen((v) => !v)}
+                aria-expanded={whyOpen}
+              >
+                {whyOpen ? '▾' : '▸'} Click here to understand why these
+                prices
+              </button>
+
+              {whyOpen && (
+                <div className="oauth-setup__why">
+                  <p>
+                    These fees reflect the full scope of the work, not just
+                    hands-on time. Because the setup happens on{' '}
+                    <strong>your</strong> accounts — not the {ADMIN_NOUN}'s —
+                    it requires careful coordination and live verification
+                    rather than a scripted install, plus the following
+                    safeguards:
+                  </p>
+                  <ul>
+                    <li>
+                      <strong>Secure credential transfer.</strong> Sensitive
+                      values (OAuth secrets, API keys) are shared through a
+                      one-time encrypted channel, never over plain email or
+                      chat.
+                    </li>
+                    <li>
+                      <strong>Documented privacy practice.</strong> A written
+                      record of what was accessed during setup is provided
+                      so you can verify exactly what was handled on your
+                      behalf.
+                    </li>
+                    <li>
+                      <strong>Guaranteed data erasure.</strong> Once your
+                      integration is live and confirmed working, the{' '}
+                      {ADMIN_NOUN} erases all personal information collected
+                      during setup — access notes, temporary tokens,
+                      screen-share recordings, any shared credentials — on a
+                      documented schedule and provides written confirmation.
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {needsCustomApps && (
+                <label className="oauth-setup__customapps">
+                  <span>
+                    {packageId === 'full'
+                      ? 'Custom apps to include (up to 2)'
+                      : 'Which custom app would you like?'}
+                  </span>
+                  <textarea
+                    value={customApps}
+                    onChange={(e) => setCustomApps(e.target.value)}
+                    placeholder={
+                      packageId === 'full'
+                        ? 'e.g. Notion, Asana'
+                        : 'e.g. Notion — inbox preview and recent pages'
+                    }
+                    rows={2}
+                  />
+                </label>
+              )}
+
               <dl className="oauth-setup__summary">
                 <dt>Fee</dt>
-                <dd>US ${PAID_SETUP_FEE_USD} — one-time, non-recurring.</dd>
-                <dt>Provider</dt>
-                <dd>{guide.label}</dd>
+                <dd>
+                  US ${selectedPackage.price} — one-time, non-recurring.
+                </dd>
+                <dt>Scope</dt>
+                <dd>{describeIntegrations()}</dd>
                 <dt>Your dashboard account</dt>
                 <dd>{user?.email ?? '—'}</dd>
                 <dt>Contact</dt>
@@ -325,19 +525,20 @@ export function OAuthSetupModal({
                     pre-filled message to the {ADMIN_NOUN}.
                   </li>
                   <li>
-                    The {ADMIN_NOUN} will reply to confirm payment method
-                    and arrange a scheduled session.
+                    The {ADMIN_NOUN} replies to confirm payment method, the
+                    secure credential-transfer channel, and a scheduled
+                    session.
                   </li>
                   <li>
                     Setup is performed during that session. You retain
-                    ownership of your Google account and any credentials
-                    issued; the {ADMIN_NOUN} does not store your Google
-                    password.
+                    ownership of your accounts and any credentials issued.
                   </li>
                   <li>
-                    Once complete, the credentials are saved in your own
+                    Once complete, credentials are saved in your own
                     dashboard account (encrypted in transit, row-level
-                    access restricted to your user).
+                    access restricted to your user), and all personal
+                    information collected for setup is erased with written
+                    confirmation.
                   </li>
                 </ol>
               </div>
@@ -351,8 +552,9 @@ export function OAuthSetupModal({
                 <span>
                   I authorise the {ADMIN_NOUN} to contact me at the email
                   address above regarding this setup request, and I
-                  understand that payment terms and scope will be confirmed
-                  in writing before any work begins.
+                  understand that payment terms, scope, and data-handling
+                  procedures will be confirmed in writing before any work
+                  begins.
                 </span>
               </label>
 
@@ -360,7 +562,7 @@ export function OAuthSetupModal({
                 <button
                   type="button"
                   className="ghost-btn small-btn"
-                  onClick={() => setView('choice')}
+                  onClick={showBack ? () => setView('choice') : onClose}
                 >
                   Cancel
                 </button>
@@ -368,7 +570,9 @@ export function OAuthSetupModal({
                   type="button"
                   className="primary-btn small-btn"
                   onClick={sendPaidRequest}
-                  disabled={!consent}
+                  disabled={
+                    !consent || (needsCustomApps && !customApps.trim())
+                  }
                 >
                   Send request
                 </button>

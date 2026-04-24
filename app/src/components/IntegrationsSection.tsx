@@ -4,15 +4,16 @@ import {
   useIntegrationsStore,
   type Provider,
 } from '../stores/integrationsStore';
-import { OAuthSetupModal } from './OAuthSetupModal';
+import { OAuthSetupModal, type SetupTarget } from './OAuthSetupModal';
 
 interface ProviderCatalogEntry {
   id: Provider;
   label: string;
   hint: string;
-  // When false, the Set up button is disabled — widget arrives in a
-  // later PR. Gmail is live; Outlook + Teams flip to true in PR 20.
-  implemented: boolean;
+  // hasDiy is true when a self-serve walkthrough exists. Only gmail
+  // qualifies today; outlook + teams currently require paid setup until
+  // their DIY guides land in PR 20.
+  hasDiy: boolean;
 }
 
 const PROVIDERS: ProviderCatalogEntry[] = [
@@ -20,19 +21,19 @@ const PROVIDERS: ProviderCatalogEntry[] = [
     id: 'gmail',
     label: 'Gmail',
     hint: 'Read-only inbox preview via the Gmail API (OAuth).',
-    implemented: true,
+    hasDiy: true,
   },
   {
     id: 'outlook',
     label: 'Outlook',
     hint: 'Microsoft email via Microsoft Graph (OAuth).',
-    implemented: false,
+    hasDiy: false,
   },
   {
     id: 'teams',
     label: 'Microsoft Teams',
     hint: 'Recent Teams chats. May require admin consent.',
-    implemented: false,
+    hasDiy: false,
   },
 ];
 
@@ -51,7 +52,7 @@ export function IntegrationsSection() {
   const disconnect = useIntegrationsStore((s) => s.disconnect);
 
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
-  const [setupFor, setSetupFor] = useState<Provider | null>(null);
+  const [setupFor, setSetupFor] = useState<SetupTarget | null>(null);
 
   const runTest = async () => {
     setTest({ kind: 'pinging' });
@@ -126,6 +127,8 @@ export function IntegrationsSection() {
             status = 'Connected.';
           } else if (configured) {
             status = 'OAuth credentials saved. Click Connect to authorise.';
+          } else if (!p.hasDiy) {
+            status = `${p.hint} Self-serve setup coming soon — paid setup available now.`;
           } else {
             status = p.hint;
           }
@@ -137,18 +140,14 @@ export function IntegrationsSection() {
                 <p>{status}</p>
               </div>
               <div className="integration-row__actions">
-                {p.implemented && (
+                {p.hasDiy && configured && (
                   <button
                     type="button"
                     className="ghost-btn small-btn"
                     onClick={() => setSetupFor(p.id)}
-                    title={
-                      configured
-                        ? 'Edit or remove your OAuth app credentials'
-                        : 'Register your own OAuth app and paste credentials'
-                    }
+                    title="Edit or remove your OAuth app credentials"
                   >
-                    {configured ? 'Edit setup' : 'Set up'}
+                    Edit setup
                   </button>
                 )}
                 {connected ? (
@@ -164,7 +163,6 @@ export function IntegrationsSection() {
                     type="button"
                     className="primary-btn small-btn"
                     onClick={() => startConnect(p.id)}
-                    disabled={!p.implemented}
                   >
                     Connect
                   </button>
@@ -173,22 +171,41 @@ export function IntegrationsSection() {
                     type="button"
                     className="primary-btn small-btn"
                     onClick={() => setSetupFor(p.id)}
-                    disabled={!p.implemented}
-                    title={p.implemented ? undefined : 'Ships in a later PR'}
                   >
-                    {p.implemented ? 'Set up' : 'Coming soon'}
+                    Set up
                   </button>
                 )}
               </div>
             </li>
           );
         })}
+
+        {/* Custom-request row — not a real OAuth provider, no connection
+            state of its own. Opens the setup modal targeting 'custom'. */}
+        <li className="integration-row integration-row--custom">
+          <div className="integration-row__main">
+            <strong>Custom integration</strong>
+            <p>
+              Need an app Daily Dashboard doesn't list? Request a paid
+              custom integration — scoped, built, and connected for you.
+            </p>
+          </div>
+          <div className="integration-row__actions">
+            <button
+              type="button"
+              className="primary-btn small-btn"
+              onClick={() => setSetupFor('custom')}
+            >
+              Request setup
+            </button>
+          </div>
+        </li>
       </ul>
 
       {setupFor && (
         <OAuthSetupModal
           open={setupFor !== null}
-          provider={setupFor}
+          target={setupFor}
           onClose={() => setSetupFor(null)}
         />
       )}

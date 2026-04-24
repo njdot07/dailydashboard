@@ -2491,6 +2491,164 @@ body[data-ui-mode='layout'] .widget-shell:active {
   width: min(620px, 100%);
 }
 
+/* Package selector in the paid-request view */
+.oauth-setup__packages {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.oauth-setup__packages legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.oauth-setup__package {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.oauth-setup__package:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.oauth-setup__package input[type='radio'] {
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+}
+
+.oauth-setup__package:has(input[type='radio']:checked) {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.oauth-setup__package-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.oauth-setup__package-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.oauth-setup__package-price {
+  font-weight: 600;
+  color: #c7d2fe;
+  font-variant-numeric: tabular-nums;
+}
+
+.oauth-setup__package-summary {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* "Why these prices" disclosure */
+.oauth-setup__why-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #a5b4fc;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.oauth-setup__why-toggle:hover {
+  color: #c7d2fe;
+  text-decoration: underline;
+}
+
+.oauth-setup__why {
+  padding: 0.85rem 1rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.oauth-setup__why p {
+  margin: 0 0 0.5rem 0;
+}
+
+.oauth-setup__why ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.oauth-setup__why strong {
+  color: #fff;
+}
+
+/* Custom-apps freeform textarea */
+.oauth-setup__customapps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__customapps span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.oauth-setup__customapps textarea {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 2.4rem;
+}
+
+.oauth-setup__customapps textarea:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+/* Custom-integration row — distinct from real OAuth providers */
+.integration-row--custom {
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  margin-top: 0.25rem;
+  padding-top: 0.9rem;
+}
+
+.integration-row--custom .integration-row__main strong {
+  color: #c7d2fe;
+}
+
 /* ============================================================
    Gmail widget
    ============================================================ */
