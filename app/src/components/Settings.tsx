@@ -5,6 +5,7 @@ import { WIDGET_REGISTRY } from './widgets/registry';
 import { Modal } from './Modal';
 import { SecretsSection } from './SecretsSection';
 import { DataPortabilitySection } from './DataPortabilitySection';
+import { IntegrationsSection } from './IntegrationsSection';
 import {
   THEME_PRESETS,
   formatThemeValue,
@@ -275,6 +276,9 @@ export function Settings({ open, onClose }: SettingsProps) {
             Drives the Status Bar's idle and next-task messages.
           </p>
         </section>
+
+        {/* -------- Integrations (Gmail / Outlook / Teams) -------- */}
+        <IntegrationsSection />
 
         {/* -------- Secret Manager -------- */}
         <SecretsSection />
