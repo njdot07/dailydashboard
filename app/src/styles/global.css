@@ -1,0 +1,3440 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Quicksand:wght@400;500;600;700&family=Orbitron:wght@500;600;700&family=Space+Grotesk:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbar chrome globally; scroll wheel + touch still work. */
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.scaffold {
+  max-width: 640px;
+  margin: 4rem auto;
+  padding: 2rem;
+}
+
+.scaffold h1 {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0 0 2rem;
+  opacity: 0.6;
+  font-size: 0.9rem;
+}
+
+.warning {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 180, 0, 0.15);
+  border-left: 3px solid rgb(255, 180, 0);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.warning code {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.status {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.15);
+}
+
+.status--reachable {
+  background: rgba(0, 180, 80, 0.18);
+  color: rgb(0, 130, 60);
+}
+
+.status--unreachable {
+  background: rgba(220, 50, 50, 0.18);
+  color: rgb(180, 40, 40);
+}
+
+/* ============================================================
+   Auth screen
+   ============================================================ */
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: linear-gradient(140deg, #f7f7fb 0%, #ece9f6 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-screen {
+    background: linear-gradient(140deg, #151520 0%, #1e1b2e 100%);
+  }
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(20, 10, 50, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-card {
+    background: rgba(30, 28, 46, 0.85);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.auth-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-tabs {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.auth-tabs button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.5rem;
+  font: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.auth-tabs button.active {
+  background: #fff;
+  opacity: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-tabs button.active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.auth-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.auth-card label span {
+  opacity: 0.7;
+}
+
+.auth-card input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.6);
+  color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-card input {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.auth-card input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+  border-color: #6366f1;
+}
+
+.auth-submit {
+  appearance: none;
+  border: 0;
+  padding: 0.75rem;
+  background: #6366f1;
+  color: white;
+  font: inherit;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  padding: 0.6rem 0.75rem;
+  background: rgba(220, 50, 50, 0.1);
+  border-left: 3px solid rgb(220, 50, 50);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: rgb(180, 40, 40);
+}
+
+.auth-notice {
+  padding: 0.6rem 0.75rem;
+  background: rgba(0, 150, 200, 0.1);
+  border-left: 3px solid rgb(0, 150, 200);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   Dashboard shell — dark/glass theme, scoped to .app-shell
+   ============================================================ */
+
+.app-shell {
+  /* Palette tokens — legacy names, still used by the header chrome. */
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --glass-bg: rgba(30, 30, 35, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
+  /* Widget-specific tokens — each preset overrides these in the
+     data-theme blocks below. Defaults mirror the marble look. */
+  --widget-bg: rgba(30, 30, 35, 0.6);
+  --widget-border: rgba(255, 255, 255, 0.1);
+  --widget-radius: 24px;
+  --widget-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  --widget-text: #ffffff;
+  --widget-text-dim: rgba(255, 255, 255, 0.65);
+  --widget-backdrop-blur: 12px;
+  --widget-input-bg: rgba(0, 0, 0, 0.3);
+  --widget-input-border: rgba(255, 255, 255, 0.18);
+  --widget-item-bg: rgba(255, 255, 255, 0.04);
+  --widget-item-bg-hover: rgba(255, 255, 255, 0.08);
+
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Inter', system-ui, sans-serif;
+  --font-accent: 'Playfair Display', Georgia, serif;
+
+  --accent-primary: #6366f1;
+  --accent-primary-hover: #4f46e5;
+
+  /* --bg-url is set inline by Dashboard.tsx; falls back to the marble
+     preset when the user's style is CSS-driven (e.g. brown). */
+  --bg-url: url('/background.png');
+
+  min-height: 100vh;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+/* ============================================================
+   Per-theme widget tokens
+   Each preset overrides the --widget-* vars so the whole dashboard
+   restyles in one place. Custom URLs still hit a preset's
+   data-theme block — only the background image differs.
+   ============================================================ */
+
+/* Pastel — cute bubble look, light pastel widget panels, rounded
+   pill corners, soft shadows, Quicksand rounded sans. */
+.app-shell[data-theme='pastel'] {
+  --widget-bg: rgba(255, 252, 250, 0.78);
+  --widget-border: rgba(255, 190, 215, 0.55);
+  --widget-radius: 28px;
+  --widget-shadow: 0 10px 30px rgba(255, 150, 190, 0.22);
+  --widget-text: #4a2952;
+  --widget-text-dim: rgba(74, 41, 82, 0.7);
+  --widget-backdrop-blur: 20px;
+  --widget-input-bg: rgba(255, 255, 255, 0.75);
+  --widget-input-border: rgba(180, 120, 150, 0.35);
+  --widget-item-bg: rgba(255, 200, 220, 0.18);
+  --widget-item-bg-hover: rgba(255, 200, 220, 0.35);
+  --font-body: 'Quicksand', system-ui, sans-serif;
+  --font-heading: 'Quicksand', system-ui, sans-serif;
+  --font-accent: 'Quicksand', system-ui, sans-serif;
+  --accent-primary: #ff87b7;
+  --accent-primary-hover: #e56aa1;
+}
+
+/* Metallic — sharp, futuristic. Small corners, steel-tinted panels,
+   Orbitron display / Space Grotesk body, cyan accent. */
+.app-shell[data-theme='metallic'] {
+  --widget-bg: rgba(30, 38, 52, 0.78);
+  --widget-border: rgba(180, 200, 225, 0.22);
+  --widget-radius: 8px;
+  --widget-shadow: 0 6px 24px rgba(40, 70, 110, 0.45);
+  --widget-text: #e6edf5;
+  --widget-text-dim: rgba(230, 237, 245, 0.68);
+  --widget-backdrop-blur: 14px;
+  --widget-input-bg: rgba(10, 15, 25, 0.6);
+  --widget-input-border: rgba(180, 200, 225, 0.25);
+  --widget-item-bg: rgba(150, 180, 220, 0.07);
+  --widget-item-bg-hover: rgba(150, 180, 220, 0.14);
+  --font-body: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-heading: 'Orbitron', 'Inter', system-ui, sans-serif;
+  --font-accent: 'Orbitron', 'Inter', sans-serif;
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #0284c7;
+}
+
+/* Brown — minimalist aesthetic. Warm cream panels, subtle borders,
+   EB Garamond serif for editorial feel, muted brown accents. */
+.app-shell[data-theme='brown'] {
+  --widget-bg: rgba(250, 240, 224, 0.82);
+  --widget-border: rgba(112, 85, 66, 0.28);
+  --widget-radius: 14px;
+  --widget-shadow: 0 4px 20px rgba(58, 40, 28, 0.18);
+  --widget-text: #2d1d10;
+  --widget-text-dim: rgba(45, 29, 16, 0.65);
+  --widget-backdrop-blur: 6px;
+  --widget-input-bg: rgba(255, 248, 236, 0.7);
+  --widget-input-border: rgba(112, 85, 66, 0.3);
+  --widget-item-bg: rgba(120, 90, 70, 0.08);
+  --widget-item-bg-hover: rgba(120, 90, 70, 0.15);
+  --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --font-heading: 'EB Garamond', Georgia, serif;
+  --font-accent: 'EB Garamond', Georgia, serif;
+  --accent-primary: #8b6f5c;
+  --accent-primary-hover: #6b4f42;
+}
+
+/* ============================================================
+   Form controls inside widgets pick up widget-level tokens so
+   light themes (pastel, brown) get readable inputs and dark
+   themes keep their contrast.
+   ============================================================ */
+.glass-panel input[type='text'],
+.glass-panel input[type='number'],
+.glass-panel input[type='time'],
+.glass-panel input[type='date'],
+.glass-panel input[type='url'],
+.glass-panel input[type='email'],
+.glass-panel input[type='password'],
+.glass-panel input[type='search'],
+.glass-panel select,
+.glass-panel textarea {
+  color: var(--widget-text);
+  background: var(--widget-input-bg);
+  border-color: var(--widget-input-border);
+  font-family: var(--font-body);
+}
+
+/* Common list items inside widgets (pinned notes, tasks, note rows,
+   launchpad categories) use the themed item tint so they read right
+   on both dark-on-light and light-on-dark palettes. */
+.pinned-note,
+.task-item,
+.note-row,
+.launchpad-category {
+  background: var(--widget-item-bg);
+}
+
+.task-item:hover,
+.note-row:hover,
+.launchpad-link:hover {
+  background: var(--widget-item-bg-hover);
+}
+
+.app-shell__overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Brown theme is CSS-driven — no raster background image.
+   A warm brown gradient underlayer, with a tiled SVG pattern of cute
+   emoji (teddy bears, stars, flowers, hearts) at low opacity on top. */
+.app-shell[data-theme='brown'] {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'><g font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'><text x='40' y='70' font-size='38' opacity='0.22'>🧸</text><text x='220' y='55' font-size='28' opacity='0.18'>⭐</text><text x='320' y='140' font-size='36' opacity='0.2'>🧸</text><text x='90' y='180' font-size='26' opacity='0.18'>🌸</text><text x='200' y='215' font-size='30' opacity='0.18'>💕</text><text x='30' y='290' font-size='32' opacity='0.2'>🧸</text><text x='280' y='310' font-size='26' opacity='0.17'>✨</text><text x='140' y='360' font-size='30' opacity='0.18'>🌸</text><text x='350' y='400' font-size='28' opacity='0.18'>⭐</text></g></svg>"),
+    linear-gradient(135deg, #a68373 0%, #6b4f42 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 420px 420px, cover;
+  background-attachment: fixed, fixed;
+}
+
+/* On the brown theme the scene is lighter than the marble default, so the
+   darkening overlay ruins the contrast. Dial it way down. */
+.app-shell[data-theme='brown'] .app-shell__overlay {
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+}
+
+.app-shell > *:not(.app-shell__overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header__brand {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.app-header__user {
+  opacity: 0.75;
+}
+
+.app-header__saving {
+  font-size: 0.8rem;
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* Segmented mode control: View / Move / Resize / Edit */
+.mode-group {
+  display: inline-flex;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.mode-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn--active {
+  background: #6366f1;
+  color: #fff;
+}
+
+.mode-btn--active:hover {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.app-main {
+  padding: 1.5rem 2rem 4rem;
+  width: 100%;
+}
+
+.app-status {
+  text-align: center;
+  opacity: 0.7;
+  margin: 2rem 0;
+}
+
+.app-status--error {
+  color: #ff7878;
+  opacity: 1;
+}
+
+/* ============================================================
+   Widget chrome — shared glass-panel look + grid layout
+   ============================================================ */
+
+.glass-panel {
+  /* Inside a widget panel, any descendant that still reaches for
+     --text-primary or --text-secondary (pre-tokenisation code paths,
+     or inputs/icons we haven't refactored individually) picks up the
+     widget's themed text instead of the shell's white. This is the
+     single biggest lever for per-theme contrast. */
+  --text-primary: var(--widget-text);
+  --text-secondary: var(--widget-text-dim);
+  --glass-bg: var(--widget-bg);
+  --glass-border: var(--widget-border);
+
+  background: var(--widget-bg);
+  backdrop-filter: blur(var(--widget-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--widget-backdrop-blur));
+  border: 1px solid var(--widget-border);
+  border-radius: var(--widget-radius);
+  padding: 1.5rem;
+  box-shadow: var(--widget-shadow);
+  color: var(--widget-text);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.widget {
+  position: relative;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* ============================================================
+   Quote header
+   ============================================================ */
+
+.header-quote {
+  text-align: center;
+  width: 100%;
+  margin: 1.5rem 0 2.5rem;
+  transition: opacity 0.4s ease;
+}
+
+.header-quote.fade-out .minimal-quote,
+.header-quote.fade-out .minimal-author {
+  opacity: 0;
+}
+
+.minimal-quote {
+  font-family: var(--font-accent);
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  font-style: italic;
+  color: var(--widget-text);
+  line-height: 1.3;
+  opacity: 0.95;
+  margin: 0;
+  transition: opacity 0.4s ease;
+}
+
+.minimal-author {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--widget-text-dim);
+  margin: 0.35rem 0 0;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  transition: opacity 0.4s ease;
+}
+
+.quote-refresh-btn {
+  background: none;
+  border: none;
+  color: var(--widget-text-dim);
+  cursor: pointer;
+  font-size: 1.05rem;
+  margin-top: 0.35rem;
+  line-height: 1;
+  transition: transform 0.3s, color 0.3s;
+}
+
+.quote-refresh-btn:hover {
+  transform: rotate(180deg);
+  color: var(--widget-text);
+}
+
+/* ============================================================
+   Status Bar widget
+   ============================================================ */
+
+.widget--status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.status-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.status-bar-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.status-bar-text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.tone-cycle-btn {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.tone-cycle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================
+   Clock widget (all-SVG, fluidly responsive)
+   ============================================================ */
+
+/* The clock is a plain rectangular glass panel containing a single SVG
+   that fills the available area and stays square via aspect-ratio. The
+   SVG itself uses a viewBox so every element scales with the container —
+   2×2 cells, 5×5 cells, whatever. */
+.widget--clock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  overflow: hidden;
+  /* No more fixed min-height — the SVG scales. Minimum sizing is
+     enforced by the registry's minSize (2×2 grid cells). */
+}
+
+.analog-clock-svg {
+  /* Fill whatever square fits inside the padded glass panel. */
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  overflow: visible;
+}
+
+/* ============================================================
+   Widget shared — titles, headers, empty state, buttons
+   ============================================================ */
+
+.widget-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--widget-text);
+  border-bottom: 1px solid var(--widget-border);
+  padding-bottom: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 0.5rem;
+}
+
+.widget-header .widget-title {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.widget-empty {
+  color: var(--widget-text-dim);
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+  font-style: italic;
+}
+
+.primary-btn {
+  appearance: none;
+  border: 0;
+  background: var(--accent-primary, #6366f1);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: var(--accent-primary-hover, #4f46e5);
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.small-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.ghost-btn {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item-icon-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.item-icon-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.item-icon-btn--delete:hover {
+  color: #ff7878;
+  background: rgba(255, 120, 120, 0.1);
+}
+
+/* ============================================================
+   Pinned Notes widget
+   ============================================================ */
+
+.widget--pinned-notes {
+  padding: 1.25rem;
+}
+
+.pin-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pin-input-row input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.pin-input-row input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.pinned-notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pinned-note {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border-left: 2px solid rgba(99, 102, 241, 0.6);
+}
+
+.pn-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+textarea.pn-text {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  resize: vertical;
+  width: 100%;
+  padding: 0;
+}
+
+textarea.pn-text:focus {
+  outline: 1px dashed rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Launchpad widget
+   ============================================================ */
+
+.widget--launchpad {
+  padding: 1.25rem;
+}
+
+.launchpad-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.launchpad-category {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.launchpad-category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.launchpad-category-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.2s;
+}
+
+.launchpad-category.open .launchpad-category-toggle {
+  transform: rotate(90deg);
+}
+
+.launchpad-category-name {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+input.launchpad-category-name {
+  appearance: none;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.launchpad-category-body {
+  padding: 0 0.75rem 0.6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.launchpad-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  text-decoration: none;
+  color: var(--text-primary);
+  border-radius: 5px;
+  font-size: 0.88rem;
+  transition: background 0.15s;
+}
+
+.launchpad-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lp-icon {
+  font-size: 1rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lp-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.launchpad-link-edit {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.launchpad-link-edit input {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.lp-add-link-btn,
+.lp-add-category-btn {
+  appearance: none;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.lp-add-link-btn:hover,
+.lp-add-category-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--text-primary);
+}
+
+.lp-add-category-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   Quick Tasks widget + Modal
+   ============================================================ */
+
+.widget--tasks {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background 0.15s, opacity 0.2s;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.task-item.completed {
+  opacity: 0.45;
+}
+
+.task-item.completed .task-text {
+  text-decoration: line-through;
+}
+
+.task-item input[type='checkbox'] {
+  flex-shrink: 0;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.task-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-time-badge {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(99, 102, 241, 0.25);
+  color: #c7c9ff;
+  border-radius: 4px;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 100;
+  animation: modal-fade 0.15s ease;
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background: rgba(52, 54, 72, 0.95);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  width: min(480px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.modal-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.25rem;
+  border-radius: 4px;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-body {
+  padding: 1.25rem;
+}
+
+.task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.task-form label span {
+  opacity: 0.7;
+}
+
+.task-form input {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.task-form input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.note-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.note-form label span {
+  opacity: 0.7;
+}
+
+.note-form input,
+.note-form textarea {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+
+.note-form input:focus,
+.note-form textarea:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+/* ============================================================
+   Notes Library widget
+   ============================================================ */
+
+.widget--notes {
+  padding: 1.25rem;
+  grid-column: span 2;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.note-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: background 0.15s;
+}
+
+.note-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.note-row-main {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+  min-width: 0;
+}
+
+.note-row-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-row-preview {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  opacity: 0.6;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-row-meta {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  align-self: start;
+}
+
+.note-row .item-icon-btn {
+  align-self: center;
+  margin-right: 0.4rem;
+}
+
+/* ============================================================
+   Calendar widget
+   ============================================================ */
+
+.widget--calendar {
+  padding: 1.25rem;
+  grid-column: span 2;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.cal-nav-btn {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-primary);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.cal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cal-month-label {
+  min-width: 130px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.cal-weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.15rem;
+  margin-bottom: 0.25rem;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  opacity: 0.5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 0.15rem;
+  aspect-ratio: 7 / 6;
+  margin-bottom: 0.85rem;
+}
+
+.cal-cell {
+  appearance: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  font: inherit;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cal-cell:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cal-cell--other {
+  opacity: 0.3;
+}
+
+.cal-cell--today {
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.cal-cell--selected {
+  background: rgba(99, 102, 241, 0.35);
+}
+
+.cal-cell--selected:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+.cal-cell-day {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-cell-count {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.cal-preview {
+  border-top: 1px solid var(--glass-border);
+  padding-top: 0.75rem;
+}
+
+.cal-preview-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.cal-preview-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cal-preview-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.cal-preview-item.completed {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.cal-preview-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7c9ff;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.cal-preview-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* On narrow grids, let the wider widgets collapse to a single column.
+   Legacy CSS-grid rule — unused once react-grid-layout drives positions,
+   kept harmless in case we fall back. */
+@media (max-width: 900px) {
+  .widget--notes,
+  .widget--calendar {
+    grid-column: auto;
+  }
+}
+
+/* ============================================================
+   react-grid-layout integration
+   ============================================================ */
+
+.dashboard-grid-rgl {
+  width: 100%;
+  min-height: 600px;
+}
+
+/* Each grid item is positioned absolutely by react-grid-layout. WidgetShell
+   fills its grid cell and lets the inner widget body take 100% height. */
+.widget-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-shell__body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The widget component itself fills the shell body. */
+.widget-shell__body > .widget {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Glass-panel padding is already handled per widget; the shell adds no
+   extra padding of its own. */
+
+/* Drag handle (top-right). Matches the legacy ⠿ affordance. */
+.widget-shell__drag-handle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: grab;
+  font-size: 1.15rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  z-index: 6;
+  user-select: none;
+}
+
+.widget-shell__drag-handle:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.widget-shell__drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Edit-mode tool cluster — sits in the top-left, groups × remove and ⚙ settings. */
+.widget-shell__tools {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 6;
+}
+
+.widget-shell__remove,
+.widget-shell__settings {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.widget-shell__remove {
+  background: rgba(255, 120, 120, 0.15);
+  color: #ff9090;
+  font-size: 1.2rem;
+}
+
+.widget-shell__remove:hover {
+  background: rgba(255, 120, 120, 0.32);
+  color: #ffbcbc;
+}
+
+.widget-shell__settings {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.widget-shell__settings:hover {
+  background: rgba(99, 102, 241, 0.32);
+  color: #c7d2fe;
+}
+
+/* Placeholder shown while dragging */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border: 2px dashed rgba(99, 102, 241, 0.55);
+  border-radius: 18px;
+  opacity: 1 !important;
+  transition-duration: 100ms;
+}
+
+/* Library's default resize handle (bottom-right chevron).
+   Hidden + click-through outside resize mode so it can't be grabbed
+   accidentally. In resize mode it's visible AND clickable. */
+.react-resizable-handle {
+  background-image: none !important;
+  background: rgba(99, 102, 241, 0) !important;
+  width: 28px;
+  height: 28px;
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, background 0.2s;
+  padding: 0;
+  z-index: 8;
+  border-bottom-right-radius: 18px;
+}
+
+body[data-ui-mode='layout'] .react-resizable-handle {
+  opacity: 1;
+  pointer-events: auto;
+  background: rgba(99, 102, 241, 0.18) !important;
+}
+
+body[data-ui-mode='layout'] .react-resizable-handle:hover {
+  background: rgba(99, 102, 241, 0.35) !important;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid rgba(255, 255, 255, 0.75);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.75);
+  border-bottom-right-radius: 2px;
+}
+
+.react-grid-item.react-grid-item--resizing {
+  z-index: 3;
+  opacity: 0.85;
+}
+
+.react-grid-item.react-draggable-dragging {
+  z-index: 4;
+  cursor: grabbing;
+  opacity: 0.95;
+}
+
+/* Quote widget lives inside a grid cell now, so strip the legacy block
+   margins and center it vertically inside its tile. */
+.widget-shell__body > .header-quote {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+/* Status bar and calendar and notes dropped their grid-column overrides
+   now that react-grid-layout drives positions. Suppress any legacy span
+   rule inside the RGL grid. */
+.dashboard-grid-rgl .widget--status,
+.dashboard-grid-rgl .widget--notes,
+.dashboard-grid-rgl .widget--calendar {
+  grid-column: auto !important;
+}
+
+/* ============================================================
+   Widget palette (Add-Widget modal)
+   ============================================================ */
+
+.widget-palette {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.widget-palette-item {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.widget-palette-item:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.widget-palette-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.widget-palette-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.widget-palette-size {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-palette-added {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ============================================================
+   Mode-specific behaviour
+   ============================================================ */
+
+/* In move/resize modes, widget content shouldn't receive pointer events —
+   prevents accidentally toggling checkboxes or typing while positioning.
+   Drag handle and resize corners stay interactive because they're siblings
+   of .widget-shell__body, not children. */
+body[data-ui-mode='layout'] .widget-shell__body {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+/* Dashed outline around every widget in layout mode so the targets
+   are obvious. */
+body[data-ui-mode='layout'] .widget-shell::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+body[data-ui-mode='layout'] .widget-shell {
+  cursor: grab;
+}
+
+body[data-ui-mode='layout'] .widget-shell:active {
+  cursor: grabbing;
+}
+
+/* ============================================================
+   Settings modal
+   ============================================================ */
+
+/* Settings gets a wider modal than the task form. */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-section {
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 1.25rem;
+}
+
+.settings-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.settings-section-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.settings-widget-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-toggle-row:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-toggle-row__label {
+  font-size: 0.9rem;
+}
+
+.settings-toggle-row__meta {
+  font-size: 0.72rem;
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-toggle-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.settings-field > span:first-child {
+  opacity: 0.65;
+  font-size: 0.8rem;
+}
+
+.settings-field select,
+.settings-field input[type='text'] {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+
+.settings-field select {
+  /* Native chevron on dark background: add a subtle custom one */
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.5) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+.settings-field select:focus,
+.settings-field input[type='text']:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.settings-inline-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.settings-inline-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-readonly {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  padding: 0.55rem 0;
+}
+
+/* Widen the modal specifically for settings */
+.modal-body .settings {
+  min-width: 0;
+}
+
+.modal:has(.settings) {
+  width: min(560px, 100%);
+}
+
+.modal:has(.settings--tabbed) {
+  width: min(700px, 100%);
+}
+
+/* Tab navigation */
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.settings-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.88rem;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.settings-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab--active {
+  color: #fff;
+  border-bottom-color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.settings-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Prose sections inside Privacy / Help */
+.settings-subtitle {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.settings-prose {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.settings-prose strong {
+  color: #fff;
+}
+
+.settings-prose code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.settings-prose a,
+.settings-privacy a,
+.settings-help a {
+  color: #a5b4fc;
+}
+
+.settings-prose a:hover,
+.settings-privacy a:hover,
+.settings-help a:hover {
+  color: #c7d2fe;
+}
+
+/* FAQ accordion */
+.faq {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.faq__item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.faq__item--open {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.faq__question {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.faq__question:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.faq__chevron {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.faq__answer {
+  padding: 0 0.85rem 0.85rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.faq__answer p {
+  margin: 0 0 0.5rem;
+}
+
+.faq__answer p:last-child {
+  margin-bottom: 0;
+}
+
+.faq__answer code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.78rem;
+  color: #fff;
+}
+
+.faq__answer a {
+  color: #a5b4fc;
+}
+
+.faq__answer a:hover {
+  color: #c7d2fe;
+}
+
+/* Weekly-reconnect notice under the Gmail row */
+.integration-row__notice {
+  margin: 0.35rem 0 0;
+  padding: 0.45rem 0.65rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.integration-row__notice strong {
+  color: #fff;
+}
+
+/* ============================================================
+   Task-color swatches + QuickTasks day navigator
+   ============================================================ */
+
+/* QuickTasks day navigator */
+.day-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.day-nav-btn {
+  appearance: none;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-primary);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.day-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.day-nav-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.day-nav-today {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #a5b4fc;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0 0.25rem 0.35rem;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.day-nav-today:hover {
+  color: #c7d2fe;
+}
+
+/* Task color dot rendered next to the task title */
+.task-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* Color picker inside the task modal */
+.task-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.task-color-picker__label {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+.task-color-picker__swatches {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.task-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.task-color-swatch:hover {
+  transform: scale(1.08);
+}
+
+.task-color-swatch--active {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================
+   Embed widget
+   ============================================================ */
+
+.widget--embed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.widget--embed-empty {
+  padding: 1.25rem;
+  gap: 0.75rem;
+  justify-content: flex-start;
+}
+
+.embed-iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
+  border: 0;
+  border-radius: max(6px, calc(var(--widget-radius) - 0.5rem));
+  background: rgba(0, 0, 0, 0.18);
+  /* iframes ignore the parent's backdrop-filter — the solid tint
+     prevents "ghost" content showing through before the iframe loads. */
+}
+
+.embed-empty-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.embed-empty-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--widget-input-border);
+  background: var(--widget-input-bg);
+  color: var(--widget-text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.embed-empty-form input:focus,
+.embed-toolbar input:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.embed-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.1rem;
+}
+
+.embed-toolbar input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--widget-input-border);
+  background: var(--widget-input-bg);
+  color: var(--widget-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+/* Tiny "open in new tab" link always visible in the top-right corner —
+   the only reliable escape hatch when a site blocks framing and the
+   iframe comes up blank. */
+.embed-open-external {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.widget--embed:hover .embed-open-external,
+.embed-open-external:focus {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* ============================================================
+   Integrations section (Settings)
+   ============================================================ */
+
+.integrations-test {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.integrations-test > div {
+  flex: 1;
+}
+
+.integrations-test strong {
+  color: #fff;
+  font-size: 0.88rem;
+  display: block;
+}
+
+.integrations-test .settings-section-hint {
+  margin: 0.1rem 0 0;
+}
+
+.integrations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.integration-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.integration-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.integration-row__main strong {
+  color: #fff;
+  font-size: 0.9rem;
+  display: block;
+}
+
+.integration-row__main p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.35;
+}
+
+.integration-row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   OAuth provider setup modal
+   ============================================================ */
+
+.oauth-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.oauth-setup__brief {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.oauth-setup__choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 540px) {
+  .oauth-setup__choices {
+    grid-template-columns: 1fr;
+  }
+}
+
+.oauth-setup__choice {
+  appearance: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.oauth-setup__choice:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(99, 102, 241, 0.55);
+}
+
+.oauth-setup__choice:active {
+  transform: translateY(1px);
+}
+
+.oauth-setup__choice strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.oauth-setup__choice span {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.oauth-setup__choice-fee {
+  align-self: flex-start;
+  padding: 0.15rem 0.55rem;
+  background: rgba(99, 102, 241, 0.22);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  border-radius: 999px;
+  font-size: 0.75rem !important;
+  color: #c7d2fe !important;
+  letter-spacing: 0.02em;
+}
+
+.oauth-setup__back {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.oauth-setup__back:hover {
+  color: #fff;
+}
+
+.oauth-setup__support {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.oauth-setup__support a {
+  color: #a5b4fc;
+}
+
+.oauth-setup__paid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.oauth-setup__summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.oauth-setup__summary dt {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+.oauth-setup__summary dd {
+  margin: 0;
+  color: #fff;
+}
+
+.oauth-setup__scope {
+  padding: 0.85rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.oauth-setup__scope strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.oauth-setup__scope ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.oauth-setup__consent {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.85rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.oauth-setup__consent input[type='checkbox'] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.oauth-setup__steps {
+  margin: 0;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.85);
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.oauth-setup__steps li {
+  padding-left: 0.25rem;
+}
+
+.oauth-setup__steps a {
+  color: #a5b4fc;
+}
+
+.oauth-setup__steps a:hover {
+  color: #c7d2fe;
+}
+
+.oauth-setup__steps code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.oauth-setup__redirect-uri {
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.oauth-setup__redirect-uri code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  user-select: all;
+}
+
+.oauth-setup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.oauth-setup__form h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.oauth-setup__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__form label span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.oauth-setup__form input {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__form input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.oauth-setup__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+}
+
+.modal:has(.oauth-setup) {
+  width: min(620px, 100%);
+}
+
+/* Package selector in the paid-request view */
+.oauth-setup__packages {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.oauth-setup__packages legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.oauth-setup__package {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.oauth-setup__package:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.oauth-setup__package input[type='radio'] {
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+}
+
+.oauth-setup__package:has(input[type='radio']:checked) {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.oauth-setup__package-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.oauth-setup__package-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.oauth-setup__package-price {
+  font-weight: 600;
+  color: #c7d2fe;
+  font-variant-numeric: tabular-nums;
+}
+
+.oauth-setup__package-summary {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* "Why these prices" disclosure */
+.oauth-setup__why-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #a5b4fc;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.oauth-setup__why-toggle:hover {
+  color: #c7d2fe;
+  text-decoration: underline;
+}
+
+.oauth-setup__why {
+  padding: 0.85rem 1rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.oauth-setup__why p {
+  margin: 0 0 0.5rem 0;
+}
+
+.oauth-setup__why ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.oauth-setup__why strong {
+  color: #fff;
+}
+
+/* Custom-apps freeform textarea */
+.oauth-setup__customapps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.oauth-setup__customapps span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.oauth-setup__customapps textarea {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 2.4rem;
+}
+
+.oauth-setup__customapps textarea:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+/* Custom-integration row — distinct from real OAuth providers */
+.integration-row--custom {
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  margin-top: 0.25rem;
+  padding-top: 0.9rem;
+}
+
+.integration-row--custom .integration-row__main strong {
+  color: #c7d2fe;
+}
+
+/* ============================================================
+   Gmail widget
+   ============================================================ */
+
+.widget--gmail {
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.gmail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.gmail-row {
+  background: var(--widget-item-bg);
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.gmail-row:hover {
+  background: var(--widget-item-bg-hover);
+}
+
+.gmail-row--unread {
+  border-left: 2px solid var(--accent-primary);
+}
+
+.gmail-row__link {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.gmail-row__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.gmail-row__from {
+  font-weight: 500;
+  color: var(--widget-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.gmail-row__time {
+  color: var(--widget-text-dim);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.gmail-row__subject {
+  font-size: 0.88rem;
+  color: var(--widget-text);
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gmail-row--unread .gmail-row__subject {
+  font-weight: 600;
+}
+
+.gmail-row__snippet {
+  font-size: 0.75rem;
+  color: var(--widget-text-dim);
+  margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   Secret Manager (inside Settings)
+   ============================================================ */
+
+.secrets-section {
+  /* Slightly separate visually from the account section below */
+}
+
+.secrets-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+}
+
+.secrets-form__intro {
+  margin: 0 0 0.25rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+}
+
+.secrets-form__intro strong {
+  color: #fff;
+}
+
+.secrets-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.secrets-form label span {
+  opacity: 0.7;
+}
+
+.secrets-form input[type='password'],
+.secrets-form input[type='text'] {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.secrets-form input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.secrets-form__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.secrets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.secrets-list__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.secrets-list__count {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.secrets-list__actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.secrets-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.secret-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.secret-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.secret-row__name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secret-row__value {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}
+
+.secret-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.secret-editor {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.secret-editor__row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 0.6rem;
+}
+
+.secret-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.secret-editor label span {
+  opacity: 0.7;
+}
+
+.secret-editor input {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  font: inherit;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.secret-editor input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.secret-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* ============================================================
+   Widget settings modal form (generic schema-driven)
+   ============================================================ */
+
+.widget-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.ws-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.ws-field__label {
+  color: #fff;
+}
+
+.ws-field__hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+.ws-field input[type='number'],
+.ws-field input[type='text'],
+.ws-field select {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+
+.ws-field input:focus,
+.ws-field select:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.ws-field--toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ws-field--toggle input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ws-field--toggle .ws-field__label {
+  flex: 1;
+}
+
+.ws-field--toggle .ws-field__hint {
+  flex-basis: 100%;
+  margin-left: calc(18px + 0.6rem);
+}
+
+.widget-settings-form__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0.25rem;
+}
+
+/* ============================================================
+   Theme presets + custom background preview
+   ============================================================ */
+
+.theme-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.theme-preset {
+  appearance: none;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  aspect-ratio: 16 / 10;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.12s;
+}
+
+.theme-preset:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.theme-preset--active {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+}
+
+.theme-preset__label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.72rem;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  text-align: left;
+}
+
+.theme-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 0.35rem;
+}
+
+.theme-preview__img {
+  width: 64px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================================
+   Backup & restore (data portability)
+   ============================================================ */
+
+.data-port__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.data-port__row .settings-section-hint {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.data-port__file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.data-port__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.data-port__field span {
+  opacity: 0.7;
+}
+
+.data-port__field textarea {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.data-port__field textarea:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.data-port__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.data-port__radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.data-port__radio input[type='radio'] {
+  accent-color: #6366f1;
+  margin-top: 0.15rem;
+}
+
+.data-port__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.data-port__preview {
+  padding: 0.75rem 0.9rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #fff;
+  margin-top: 0.35rem;
+}
+
+.data-port__preview ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.data-port__preview li {
+  margin: 0.1rem 0;
+}
+
+/* Hint shown when user flips to Layout mode on a non-desktop breakpoint */
+.app-status--hint {
+  max-width: 600px;
+  margin: 0.5rem auto 1rem;
+  padding: 0.5rem 0.85rem;
+  text-align: center;
+  font-size: 0.85rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
+/* ============================================================
+   Responsive breakpoints (match react-grid-layout's sm/xs/xxs)
+   ============================================================ */
+
+/* Tablet and below — tighten header, shrink main padding */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.6rem 0.9rem;
+  }
+  .app-header__brand {
+    font-size: 1rem;
+  }
+  .app-header__left {
+    gap: 0.75rem;
+  }
+  .app-main {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 640px) {
+  .app-header__left {
+    order: 1;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .app-header__actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .app-header__user {
+    display: none;
+  }
+  .mode-btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* Phone */
+@media (max-width: 480px) {
+  .app-header__brand {
+    font-size: 0.95rem;
+  }
+  .app-main {
+    padding: 0.75rem 0.5rem 2rem;
+  }
+  .app-header__saving {
+    display: none;
+  }
+  /* Make the (now reflowed) widgets take full width of their single
+     column cells — react-grid-layout handles the positions, CSS just
+     relaxes internal padding so content doesn't get squeezed. */
+  .widget,
+  .glass-panel {
+    padding: 1rem;
+  }
+  .widget--clock {
+    padding: 0.5rem;
+  }
+}
