@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py --version)",
+      "Bash(ls /c/Python*)",
+      "Read(//c/Users/AIPC/AppData/Local/Programs/**)"
+    ]
+  }
+}
